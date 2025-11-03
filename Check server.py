@@ -1,311 +1,103 @@
-# channel_copier.py
-import urllib.request
-import urllib.error
-import json
-import ssl
-import time
-import base64
-import os
+# Check server.py
+import aiohttp
+import asyncio
 from colorama import init, Fore, Back, Style
 
 # Инициализация colorama для цветного вывода
 init(autoreset=True)
 
-# Отключаем SSL проверку
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
-
-class SimpleCloner:
-    def __init__(self, token):
-        self.token = token
-        self.headers = {
-            'Authorization': token,
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0'
-        }
-    
-    def make_request(self, method, url, data=None):
-        """Простой HTTP запрос"""
-        try:
-            if data:
-                data = json.dumps(data).encode()
-            
-            req = urllib.request.Request(
-                url,
-                data=data,
-                headers=self.headers,
-                method=method
-            )
-            
-            with urllib.request.urlopen(req, context=ssl_context, timeout=30) as response:
-                return response, json.loads(response.read().decode())
-        except urllib.error.HTTPError as e:
-            print(f"{Fore.RED}❌ HTTP Error {e.code}: {e.reason}")
-            return e, None
-        except Exception as e:
-            print(f"{Fore.RED}❌ Request Error: {e}")
-            return None, e
-    
-    def get_server_info(self, server_id):
-        """Получаем информацию о сервере"""
-        response, data = self.make_request('GET', f'https://discord.com/api/v9/guilds/{server_id}')
-        if response and response.status == 200:
-            return data
-        return None
-    
-    def get_servers(self):
-        """Получаем список серверов"""
-        response, data = self.make_request('GET', 'https://discord.com/api/v9/users/@me/guilds')
-        if response and response.status == 200:
-            return data
-        return []
-    
-    def get_channels(self, server_id):
-        """Получаем каналы сервера"""
-        response, data = self.make_request('GET', f'https://discord.com/api/v9/guilds/{server_id}/channels')
-        if response and response.status == 200:
-            return data
-        return []
-    
-    def get_roles(self, server_id):
-        """Получаем роли сервера"""
-        response, data = self.make_request('GET', f'https://discord.com/api/v9/guilds/{server_id}/roles')
-        if response and response.status == 200:
-            return data
-        return []
-    
-    def get_server_icon(self, server_id):
-        """Получаем аватарку сервера"""
-        try:
-            server_info = self.get_server_info(server_id)
-            if server_info and server_info.get('icon'):
-                icon_hash = server_info['icon']
-                icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon_hash}.png?size=4096"
-                with urllib.request.urlopen(icon_url, context=ssl_context) as icon_response:
-                    icon_data = icon_response.read()
-                    return f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
-            return None
-        except Exception as e:
-            print(f"{Fore.YELLOW}⚠️  Ошибка загрузки аватарки: {e}")
-            return None
-    
-    def delete_channel(self, channel_id):
-        """Удаляем канал"""
-        response, _ = self.make_request('DELETE', f'https://discord.com/api/v9/channels/{channel_id}')
-        return response and response.status == 200
-    
-    def create_channel(self, server_id, channel_data):
-        """Создаем канал"""
-        response, data = self.make_request('POST', f'https://discord.com/api/v9/guilds/{server_id}/channels', channel_data)
-        return response and response.status == 201
-    
-    def create_role(self, server_id, role_data):
-        """Создаем роль"""
-        response, data = self.make_request('POST', f'https://discord.com/api/v9/guilds/{server_id}/roles', role_data)
-        return response and response.status == 200
-    
-    def update_server_info(self, server_id, server_data):
-        """Обновляем информацию о сервере"""
-        response, result = self.make_request('PATCH', f'https://discord.com/api/v9/guilds/{server_id}', server_data)
-        return response and response.status == 200
-    
-    def delete_role(self, server_id, role_id):
-        """Удаляем роль"""
-        response, _ = self.make_request('DELETE', f'https://discord.com/api/v9/guilds/{server_id}/roles/{role_id}')
-        return response and response.status == 204
-    
-    def clone_server(self, source_id, target_id):
-        """Клонируем сервер"""
-        print(f"\n{Fore.CYAN}🚀 Начинаем клонирование...")
-        
-        # Получаем информацию об исходном сервере
-        source_info = self.get_server_info(source_id)
-        if not source_info:
-            print(f"{Fore.RED}❌ Не удалось получить информацию об исходном сервере!")
-            return
-        
-        server_name = source_info.get('name', 'Unknown Server')
-        
-        # Копируем название сервера
-        print(f"\n{Fore.MAGENTA}📝 Копируем название сервера...")
-        name_data = {'name': server_name}
-        if self.update_server_info(target_id, name_data):
-            print(f"{Fore.GREEN}✅ Название скопировано: {server_name}")
-        else:
-            print(f"{Fore.RED}❌ Ошибка копирования названия")
-        
-        # Копируем аватарку
-        print(f"\n{Fore.MAGENTA}🖼️  Копируем аватарку сервера...")
-        server_icon = self.get_server_icon(source_id)
-        if server_icon:
-            icon_data = {'icon': server_icon}
-            if self.update_server_info(target_id, icon_data):
-                print(f"{Fore.GREEN}✅ Аватарка скопирована!")
-            else:
-                print(f"{Fore.RED}❌ Ошибка копирования аватарки")
-        else:
-            print(f"{Fore.YELLOW}⚠️  У исходного сервера нет аватарки")
-        
-        # Получаем каналы и роли
-        source_channels = self.get_channels(source_id)
-        target_channels = self.get_channels(target_id)
-        source_roles = self.get_roles(source_id)
-        target_roles = self.get_roles(target_id)
-        
-        print(f"{Fore.GREEN}📁 Исходный сервер: {len(source_channels)} каналов, {len(source_roles)} ролей")
-        print(f"{Fore.YELLOW}📁 Целевой сервер: {len(target_channels)} каналов, {len(target_roles)} ролей")
-        
-        # Удаляем старые каналы
-        print(f"\n{Fore.RED}🗑️  Удаляем старые каналы...")
-        for channel in target_channels:
-            if self.delete_channel(channel['id']):
-                print(f"{Fore.GREEN}✅ Удален канал: {channel['name']}")
-            else:
-                print(f"{Fore.RED}❌ Ошибка удаления: {channel['name']}")
-            time.sleep(0.5)
-        
-        # Удаляем старые роли (кроме @everyone)
-        print(f"\n{Fore.RED}🗑️  Удаляем старые роли...")
-        for role in target_roles:
-            if not role['managed'] and role['name'] != '@everyone':
-                if self.delete_role(target_id, role['id']):
-                    print(f"{Fore.GREEN}✅ Удалена роль: {role['name']}")
-                else:
-                    print(f"{Fore.RED}❌ Ошибка удаления: {role['name']}")
-                time.sleep(0.5)
-        
-        # Создаем новые роли
-        print(f"\n{Fore.BLUE}🎨 Создаем новые роли...")
-        role_count = 0
-        for role in source_roles:
-            if not role['managed'] and role['name'] != '@everyone':
-                role_data = {
-                    'name': role['name'],
-                    'color': role['color'],
-                    'hoist': role['hoist'],
-                    'mentionable': role['mentionable'],
-                    'permissions': str(role['permissions'])
-                }
-                
-                if self.create_role(target_id, role_data):
-                    print(f"{Fore.GREEN}✅ Создана роль: {role['name']}")
-                    role_count += 1
-                else:
-                    print(f"{Fore.RED}❌ Ошибка создания: {role['name']}")
-                time.sleep(0.5)
-        
-        # Создаем категории и каналы
-        print(f"\n{Fore.BLUE}📝 Создаем структуру сервера...")
-        
-        # Сначала создаем категории
-        categories = [ch for ch in source_channels if ch['type'] == 4]
-        category_map = {}
-        
-        print(f"{Fore.CYAN}📂 Создаем категории...")
-        for category in categories:
-            category_data = {
-                'name': category['name'],
-                'type': 4,
-                'position': category['position']
-            }
-            
-            response, data = self.make_request('POST', f'https://discord.com/api/v9/guilds/{target_id}/channels', category_data)
-            if response and response.status == 201:
-                category_map[category['id']] = data['id']
-                print(f"{Fore.GREEN}✅ Создана категория: {category['name']}")
-            else:
-                print(f"{Fore.RED}❌ Ошибка создания категории: {category['name']}")
-            time.sleep(0.5)
-        
-        # Затем создаем каналы внутри категорий
-        created_count = 0
-        channels = [ch for ch in source_channels if ch['type'] != 4]
-        
-        print(f"{Fore.CYAN}📝 Создаем каналы...")
-        for channel in channels:
-            channel_data = {
-                'name': channel['name'],
-                'type': channel['type'],
-                'position': channel['position']
-            }
-            
-            if channel.get('parent_id') and channel['parent_id'] in category_map:
-                channel_data['parent_id'] = category_map[channel['parent_id']]
-            
-            if self.create_channel(target_id, channel_data):
-                print(f"{Fore.GREEN}✅ Создан канал: {channel['name']}")
-                created_count += 1
-            else:
-                print(f"{Fore.RED}❌ Ошибка создания: {channel['name']}")
-            time.sleep(0.5)
-        
-        print(f"\n{Fore.CYAN}🎉 Готово! Клонирование завершено!")
-        print(f"{Fore.GREEN}✅ Название сервера: {server_name}")
-        print(f"{Fore.GREEN}✅ Создано {len(categories)} категорий, {created_count} каналов и {role_count} ролей!")
-        if server_icon:
-            print(f"{Fore.GREEN}✅ Аватарка сервера скопирована!")
-
 def print_banner():
     """Красивый баннер"""
     print(f"{Fore.CYAN}{'='*60}")
-    print(f"{Fore.MAGENTA}{Back.BLACK}           Discord Server Cloner")
+    print(f"{Fore.MAGENTA}{Back.BLACK}        Discord Server Checker")
     print(f"{Fore.CYAN}{'='*60}")
     print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zqmpi")
     print(f"{Fore.YELLOW}📞 Контакт: {Fore.WHITE}discord - stylesx2w2")
     print(f"{Fore.YELLOW}📺 YouTube: {Fore.WHITE}https://www.youtube.com/@stylesxwx")
     print(f"{Fore.CYAN}{'='*60}")
 
+async def check_servers(token):
+    headers = {'Authorization': token}
+    
+    async with aiohttp.ClientSession() as session:
+        # Проверяем токен
+        print(f"\n{Fore.CYAN}🔍 Проверяем токен...")
+        async with session.get('https://discord.com/api/v9/users/@me', headers=headers) as r:
+            if r.status == 200:
+                user = await r.json()
+                print(f"{Fore.GREEN}✅ ТОКЕН РАБОЧИЙ!")
+                print(f"{Fore.CYAN}👤 Пользователь: {Fore.WHITE}{user['username']}#{user['discriminator']}")
+                print(f"{Fore.CYAN}🆔 ID пользователя: {Fore.WHITE}{user['id']}")
+                
+                # Получаем список серверов
+                print(f"\n{Fore.CYAN}📂 Получаем список серверов...")
+                async with session.get('https://discord.com/api/v9/users/@me/guilds', headers=headers) as guilds_r:
+                    if guilds_r.status == 200:
+                        guilds = await guilds_r.json()
+                        print(f"{Fore.GREEN}✅ Найдено серверов: {len(guilds)}")
+                        
+                        print(f"\n{Fore.CYAN}📋 Список серверов:")
+                        print(f"{Fore.CYAN}{'-'*40}")
+                        
+                        for guild in guilds:
+                            guild_id = guild['id']
+                            guild_name = guild['name']
+                            print(f"{Fore.WHITE}   🏠 {guild_name} (ID: {guild_id})")
+                        
+                        print(f"{Fore.CYAN}{'-'*40}")
+                        print(f"\n{Fore.GREEN}🎉 Все сервера загружены успешно!")
+                            
+                    else:
+                        print(f"{Fore.RED}❌ Не удалось получить список серверов: {guilds_r.status}")
+            else:
+                print(f"{Fore.RED}❌ Токен невалидный: {r.status}")
+
 def main():
     print_banner()
     
-    # Ввод данных с описанием
-    print(f"\n{Fore.WHITE}Введите данные для клонирования:")
+    # Выбор способа ввода токена
+    print(f"\n{Fore.YELLOW}🔐 Выберите способ ввода токена:")
+    print(f"{Fore.CYAN}1. {Fore.WHITE}Ввести токен вручную")
+    print(f"{Fore.CYAN}2. {Fore.WHITE}Использовать токен из файла")
     
-    print(f"\n{Fore.YELLOW}[ТОКЕН] {Fore.WHITE}Токен вашего Discord аккаунта")
-    print(f"{Fore.CYAN}>> {Fore.WHITE}Нужен для доступа к API Discord")
-    token = input(f"{Fore.GREEN}[ВВОД] Введите токен: {Fore.WHITE}").strip()
+    choice = input(f"\n{Fore.YELLOW}[?] Выберите вариант (1/2): {Fore.WHITE}").strip()
     
+    token = ""
+    
+    if choice == "1":
+        # Ввод токена вручную
+        print(f"\n{Fore.YELLOW}📝 Введите ваш Discord токен:")
+        print(f"{Fore.RED}⚠️  Внимание: Токен будет виден при вводе!")
+        token = input(f"{Fore.YELLOW}[?] Токен: {Fore.WHITE}").strip()
+        
+    elif choice == "2":
+        # Чтение токена из файла
+        try:
+            with open("token.txt", "r", encoding="utf-8") as f:
+                token = f.read().strip()
+            print(f"{Fore.GREEN}✅ Токен успешно загружен из файла token.txt")
+        except FileNotFoundError:
+            print(f"{Fore.RED}❌ Файл token.txt не найден!")
+            print(f"{Fore.YELLOW}📝 Создайте файл token.txt и поместите в него ваш токен")
+            input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
+            return
+        except Exception as e:
+            print(f"{Fore.RED}❌ Ошибка при чтении файла: {e}")
+            input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
+            return
+    else:
+        print(f"{Fore.RED}❌ Неверный выбор!")
+        input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
+        return
+    
+    # Проверяем, что токен не пустой
     if not token:
         print(f"{Fore.RED}❌ Токен не может быть пустым!")
+        input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
         return
     
-    print(f"\n{Fore.YELLOW}[ИСХОДНЫЙ СЕРВЕР] {Fore.WHITE}ID сервера, который копируем")
-    print(f"{Fore.CYAN}>> {Fore.WHITE}Берем из Check server.py или через Разработчика (F12)")
-    source_id = input(f"{Fore.GREEN}[ВВОД] ID исходного сервера: {Fore.WHITE}").strip()
-    
-    print(f"\n{Fore.YELLOW}[ЦЕЛЕВОЙ СЕРВЕР] {Fore.WHITE}ID пустого сервера, куда копируем")
-    print(f"{Fore.CYAN}>> {Fore.WHITE}Создайте новый сервер или используйте существующий")
-    target_id = input(f"{Fore.GREEN}[ВВОД] ID целевого сервера: {Fore.WHITE}").strip()
-    
-    # Проверяем токен
-    cloner = SimpleCloner(token)
-    
-    # Проверяем доступ к серверам
-    print(f"\n{Fore.CYAN}🔍 Проверяем доступ к серверам...")
-    servers = cloner.get_servers()
-    source_exists = any(s['id'] == source_id for s in servers)
-    target_exists = any(s['id'] == target_id for s in servers)
-    
-    if not source_exists:
-        print(f"{Fore.RED}❌ Исходный сервер не найден!")
-        print(f"{Fore.YELLOW}💡 Убедитесь, что у вас есть доступ к этому серверу")
-        return
-    if not target_exists:
-        print(f"{Fore.RED}❌ Целевой сервер не найден!")
-        print(f"{Fore.YELLOW}💡 Убедитесь, что у вас есть доступ к этому серверу")
-        return
-    
-    print(f"{Fore.GREEN}✅ Серверы найдены и доступны!")
-    
-    # Подтверждение
-    print(f"\n{Fore.RED}⚠️  ВНИМАНИЕ: Все каналы и роли на целевом сервере будут удалены!")
-    print(f"{Fore.YELLOW}💡 Будет скопировано: название, аватарка, роли, категории, текстовые и голосовые каналы")
-    confirm = input(f"{Fore.GREEN}[ПОДТВЕРЖДЕНИЕ] Начать клонирование? (y/n): {Fore.WHITE}").lower()
-    if confirm == 'y':
-        cloner.clone_server(source_id, target_id)
-    else:
-        print(f"{Fore.RED}❌ Операция отменена пользователем")
+    # Запускаем проверку серверов
+    asyncio.run(check_servers(token))
 
 if __name__ == "__main__":
     try:
