@@ -328,7 +328,7 @@ def print_banner():
     print(f"{Fore.CYAN}{'='*60}")
     print(f"{Fore.MAGENTA}{Back.BLACK}           Discord Server Cloner V2")
     print(f"{Fore.CYAN}{'='*60}")
-    print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zqmpi")
+    print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zlafik")
     print(f"{Fore.YELLOW}📞 Контакт: {Fore.WHITE}discord - stylesx2w2")
     print(f"{Fore.YELLOW}📺 YouTube: {Fore.WHITE}https://www.youtube.com/@stylesxwx")
     print(f"{Fore.YELLOW}📱 Telegram: {Fore.WHITE}https://t.me/peredoznikbio")
