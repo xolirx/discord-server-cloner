@@ -1,11 +1,45 @@
+# Installer.bat
 @echo off
-chcp 65001
+chcp 65001 >nul
 title Installing Dependencies
 
-echo Installing Python dependencies...
+echo.
+echo ========================================
+echo    Installing Dependencies
+echo ========================================
+echo.
+
+:: Check Python
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Python is not installed!
+    echo.
+    echo Download and install Python from:
+    echo https://www.python.org/downloads/
+    echo.
+    echo Make sure to check "Add Python to PATH" during installation!
+    echo.
+    pause
+    exit /b 1
+)
+
+echo Installing required packages...
+echo.
+
+:: Upgrade pip
 python -m pip install --upgrade pip
-pip install aiohttp colorama certifi requests
+
+:: Install packages
+pip install aiohttp
+pip install colorama
+pip install certifi
+pip install requests
 
 echo.
-echo Dependencies installed successfully!
+echo ========================================
+echo    Dependencies installed successfully!
+echo ========================================
+echo.
+echo Now you can run start.bat
+echo.
 pause

@@ -1,4 +1,4 @@
-# 📖 ИНСТРУКЦИЯ ПО ИСПОЛЬЗОВАНИЮ DISCORD SERVER CLONER V2
+# 📖 ИНСТРУКЦИЯ ПО ИСПОЛЬЗОВАНИЮ DISCORD SERVER CLONER V3
 
 ## 🔧 ШАГ 1: УСТАНОВКА
 1. Скачайте все файлы программы
@@ -90,10 +90,10 @@
 
 ## 📞 ТЕХНИЧЕСКАЯ ПОДДЕРЖКА:
 
-👤 Автор: zqmpi
+👤 Автор: zlafik
 📞 Discord: stylesx2w2  
 📺 YouTube: @stylesxwx
-📱 Telegram: t.me/peredoznikbio
+📱 Telegram: @zlafik
 
 ## ⚠️ ВАЖНЫЕ ЗАМЕЧАНИЯ:
 

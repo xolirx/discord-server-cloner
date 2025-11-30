@@ -16,17 +16,18 @@ ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
 ssl_context.verify_mode = ssl.CERT_NONE
 
-class SimpleCloner:
+class AdvancedCloner:
     def __init__(self, token):
         self.token = token
         self.headers = {
             'Authorization': token,
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
+        self.rate_limit_delay = 0.5
     
     def make_request(self, method, url, data=None):
-        """Простой HTTP запрос"""
+        """Улучшенный HTTP запрос с обработкой ошибок"""
         try:
             if data:
                 data = json.dumps(data, ensure_ascii=False).encode('utf-8')
@@ -44,12 +45,18 @@ class SimpleCloner:
                     return response, json.loads(response_data)
                 else:
                     return response, None
+                    
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                print(f"{Fore.YELLOW}⚠️  Rate limit, ждем 2 секунды...")
-                time.sleep(2)
+                retry_after = e.headers.get('Retry-After', 2)
+                print(f"{Fore.YELLOW}⚠️  Rate limit, ждем {retry_after} секунд...")
+                time.sleep(float(retry_after))
                 return self.make_request(method, url, data)
             print(f"{Fore.RED}❌ HTTP Error {e.code}: {e.reason}")
+            if e.code == 401:
+                print(f"{Fore.RED}🔑 Неверный токен!")
+            elif e.code == 403:
+                print(f"{Fore.RED}🚫 Нет прав доступа!")
             return e, None
         except Exception as e:
             print(f"{Fore.RED}❌ Request Error: {e}")
@@ -89,10 +96,16 @@ class SimpleCloner:
             server_info = self.get_server_info(server_id)
             if server_info and server_info.get('icon'):
                 icon_hash = server_info['icon']
-                icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon_hash}.png?size=4096"
-                with urllib.request.urlopen(icon_url, context=ssl_context) as icon_response:
+                icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon_hash}.png?size=128"
+                
+                # Добавляем заголовки для обхода ограничений
+                req = urllib.request.Request(icon_url, headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                })
+                
+                with urllib.request.urlopen(req, context=ssl_context) as icon_response:
                     icon_data = icon_response.read()
-                    return f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
+                    return base64.b64encode(icon_data).decode()
             return None
         except Exception as e:
             print(f"{Fore.YELLOW}⚠️  Ошибка загрузки аватарки: {e}")
@@ -106,15 +119,15 @@ class SimpleCloner:
     def create_channel(self, server_id, channel_data):
         """Создаем канал"""
         response, data = self.make_request('POST', f'https://discord.com/api/v9/guilds/{server_id}/channels', channel_data)
-        return response and response.status == 201
+        return response and response.status == 201, data
     
     def create_role(self, server_id, role_data):
         """Создаем роль"""
         response, data = self.make_request('POST', f'https://discord.com/api/v9/guilds/{server_id}/roles', role_data)
-        return response and response.status == 200
+        return response and response.status == 200, data
     
     def update_role_positions(self, server_id, position_data):
-        """Обновляем позиции ролей массово - КЛЮЧЕВОЙ МЕТОД ДЛЯ ПОРЯДКА РОЛЕЙ"""
+        """Обновляем позиции ролей массово"""
         response, result = self.make_request('PATCH', f'https://discord.com/api/v9/guilds/{server_id}/roles', position_data)
         return response and response.status == 200
     
@@ -152,10 +165,12 @@ class SimpleCloner:
             return False
     
     def clone_server(self, source_id, target_id):
-        """Клонируем сервер V2 - с правильным порядком ролей"""
-        print(f"\n{Fore.CYAN}🚀 Начинаем клонирование V2 (правильный порядок ролей)...")
+        """Клонируем сервер"""
+        print(f"\n{Fore.CYAN}🚀 Запускаем клонирование...")
+        print(f"{Fore.CYAN}{'═' * 60}")
         
         # Получаем информацию об исходном сервере
+        print(f"{Fore.MAGENTA}📡 Получаем информацию о серверах...")
         source_info = self.get_server_info(source_id)
         if not source_info:
             print(f"{Fore.RED}❌ Не удалось получить информацию об исходном сервере!")
@@ -164,26 +179,31 @@ class SimpleCloner:
         server_name = source_info.get('name', 'Unknown Server')
         
         # Копируем название сервера
-        print(f"\n{Fore.MAGENTA}📝 Копируем название сервера...")
+        print(f"\n{Fore.BLUE}📝 Копируем название сервера...")
         name_data = {'name': server_name}
         if self.update_server_info(target_id, name_data):
-            print(f"{Fore.GREEN}✅ Название скопировано: {server_name}")
+            print(f"{Fore.GREEN}✅ Название скопировано: {Fore.WHITE}{server_name}")
         else:
             print(f"{Fore.RED}❌ Ошибка копирования названия")
         
         # Копируем аватарку
-        print(f"\n{Fore.MAGENTA}🖼️  Копируем аватарку сервера...")
-        server_icon = self.get_server_icon(source_id)
-        if server_icon:
-            icon_data = {'icon': server_icon}
-            if self.update_server_info(target_id, icon_data):
-                print(f"{Fore.GREEN}✅ Аватарка скопирована!")
-            else:
-                print(f"{Fore.RED}❌ Ошибка копирования аватарки")
+        print(f"\n{Fore.BLUE}🖼️  Копируем аватарку сервера...")
+        server_icon_b64 = self.get_server_icon(source_id)
+        if server_icon_b64:
+            try:
+                # Правильный формат для Discord API
+                icon_data = {'icon': f"data:image/png;base64,{server_icon_b64}"}
+                if self.update_server_info(target_id, icon_data):
+                    print(f"{Fore.GREEN}✅ Аватарка скопирована!")
+                else:
+                    print(f"{Fore.RED}❌ Ошибка копирования аватарки")
+            except Exception as e:
+                print(f"{Fore.RED}❌ Ошибка при обработке аватарки: {e}")
         else:
             print(f"{Fore.YELLOW}⚠️  У исходного сервера нет аватарки")
         
         # Получаем каналы и роли
+        print(f"{Fore.MAGENTA}📊 Анализируем структуру серверов...")
         source_channels = self.get_channels(source_id)
         target_channels = self.get_channels(target_id)
         source_roles = self.get_roles(source_id)
@@ -193,39 +213,42 @@ class SimpleCloner:
         print(f"{Fore.YELLOW}📁 Целевой сервер: {len(target_channels)} каналов, {len(target_roles)} ролей")
         
         # Удаляем старые каналы
-        print(f"\n{Fore.RED}🗑️  Удаляем старые каналы...")
+        print(f"\n{Fore.RED}🗑️  Очищаем целевой сервер...")
+        print(f"{Fore.RED}├── Удаляем каналы...")
+        channels_deleted = 0
         for channel in target_channels:
             if self.delete_channel(channel['id']):
-                print(f"{Fore.GREEN}✅ Удален канал: {channel['name']}")
+                print(f"{Fore.GREEN}│   ✅ Удален: {channel['name']}")
+                channels_deleted += 1
             else:
-                print(f"{Fore.RED}❌ Ошибка удаления: {channel['name']}")
-            time.sleep(0.5)
+                print(f"{Fore.RED}│   ❌ Ошибка: {channel['name']}")
+            time.sleep(self.rate_limit_delay)
         
         # Удаляем старые роли (кроме @everyone)
-        print(f"\n{Fore.RED}🗑️  Удаляем старые роли...")
+        print(f"{Fore.RED}└── Удаляем роли...")
         roles_deleted = 0
         for role in target_roles:
             if not role['managed'] and role['name'] != '@everyone':
                 if self.delete_role(target_id, role['id']):
-                    print(f"{Fore.GREEN}✅ Удалена роль: {role['name']}")
+                    print(f"{Fore.GREEN}    ✅ Удалена: {role['name']}")
                     roles_deleted += 1
                 else:
-                    print(f"{Fore.RED}❌ Ошибка удаления: {role['name']}")
-                time.sleep(0.5)
+                    print(f"{Fore.RED}    ❌ Ошибка: {role['name']}")
+                time.sleep(self.rate_limit_delay)
         
-        print(f"{Fore.GREEN}✅ Удалено ролей: {roles_deleted}")
+        print(f"{Fore.GREEN}✅ Удалено: {channels_deleted} каналов, {roles_deleted} ролей")
         
-        # СОЗДАЕМ РОЛИ С ПРАВИЛЬНЫМ ПОРЯДКОМ V2
-        print(f"\n{Fore.BLUE}🎨 Создаем новые роли V2 (с правильным порядком)...")
+        # СОЗДАЕМ РОЛИ
+        print(f"\n{Fore.MAGENTA}🎨 Создаем роли...")
         
         # Фильтруем роли (кроме @everyone и управляемых)
         roles_to_create = [role for role in source_roles if not role['managed'] and role['name'] != '@everyone']
         
-        # Сортируем роли по позиции (от высшей к низшей)
+        # Сортируем роли по позиции
         sorted_roles = sorted(roles_to_create, key=lambda x: x['position'], reverse=True)
         
+        role_mapping = {}
         role_count = 0
-        created_roles = []  # Сохраняем созданные роли для обновления позиций
         
         for role in sorted_roles:
             role_data = {
@@ -236,49 +259,42 @@ class SimpleCloner:
                 'permissions': str(role['permissions'])
             }
             
-            if self.create_role(target_id, role_data):
-                # Получаем ID созданной роли (нужно получить список ролей снова)
-                print(f"{Fore.GREEN}✅ Создана роль: {role['name']} (позиция: {role['position']})")
+            success, response_data = self.create_role(target_id, role_data)
+            if success:
+                role_mapping[role['name']] = response_data['id']
+                print(f"{Fore.GREEN}✅ Создана роль: {role['name']}")
                 role_count += 1
             else:
                 print(f"{Fore.RED}❌ Ошибка создания: {role['name']}")
-            time.sleep(0.5)
+            time.sleep(self.rate_limit_delay)
         
-        # ОБНОВЛЯЕМ ПОЗИЦИИ РОЛЕЙ МАССОВО - КЛЮЧЕВОЙ МОМЕНТ!
-        print(f"\n{Fore.BLUE}📊 Обновляем порядок ролей массово...")
+        # ОБНОВЛЯЕМ ПОЗИЦИИ РОЛЕЙ
+        print(f"\n{Fore.BLUE}📊 Устанавливаем порядок ролей...")
         
-        # Получаем свежий список созданных ролей
-        new_roles = self.get_roles(target_id)
-        if new_roles:
-            # Создаем карту соответствия имен ролей и их ID
-            role_name_to_id = {role['name']: role['id'] for role in new_roles if role['name'] != '@everyone'}
-            
-            # Подготавливаем данные для массового обновления позиций
+        if role_mapping:
             position_updates = []
             for source_role in sorted_roles:
-                if source_role['name'] in role_name_to_id:
+                if source_role['name'] in role_mapping:
                     position_updates.append({
-                        'id': role_name_to_id[source_role['name']],
+                        'id': role_mapping[source_role['name']],
                         'position': source_role['position']
                     })
             
-            # Отправляем массовый запрос на обновление позиций
             if position_updates and self.update_role_positions(target_id, position_updates):
-                print(f"{Fore.GREEN}✅ Порядок ролей успешно обновлен!")
-                print(f"{Fore.GREEN}✅ Роли расположены в точности как на исходном сервере!")
+                print(f"{Fore.GREEN}✅ Порядок ролей обновлен!")
             else:
                 print(f"{Fore.YELLOW}⚠️  Не удалось обновить порядок ролей")
         else:
-            print(f"{Fore.RED}❌ Не удалось получить список созданных ролей")
+            print(f"{Fore.YELLOW}⚠️  Нет ролей для обновления позиций")
         
         # Создаем категории и каналы
-        print(f"\n{Fore.BLUE}📝 Создаем структуру сервера...")
+        print(f"\n{Fore.CYAN}🏗️  Создаем структуру каналов...")
         
         # Сначала создаем категории
         categories = [ch for ch in source_channels if ch['type'] == 4]
         category_map = {}
         
-        print(f"{Fore.CYAN}📂 Создаем категории...")
+        print(f"{Fore.BLUE}📂 Создаем категории...")
         for category in categories:
             category_data = {
                 'name': category['name'],
@@ -286,19 +302,19 @@ class SimpleCloner:
                 'position': category['position']
             }
             
-            response, data = self.make_request('POST', f'https://discord.com/api/v9/guilds/{target_id}/channels', category_data)
-            if response and response.status == 201:
+            success, data = self.create_channel(target_id, category_data)
+            if success:
                 category_map[category['id']] = data['id']
                 print(f"{Fore.GREEN}✅ Создана категория: {category['name']}")
             else:
                 print(f"{Fore.RED}❌ Ошибка создания категории: {category['name']}")
-            time.sleep(0.5)
+            time.sleep(self.rate_limit_delay)
         
         # Затем создаем каналы внутри категорий
         created_count = 0
         channels = [ch for ch in source_channels if ch['type'] != 4]
         
-        print(f"{Fore.CYAN}📝 Создаем каналы...")
+        print(f"{Fore.BLUE}📝 Создаем каналы...")
         for channel in channels:
             channel_data = {
                 'name': channel['name'],
@@ -309,34 +325,42 @@ class SimpleCloner:
             if channel.get('parent_id') and channel['parent_id'] in category_map:
                 channel_data['parent_id'] = category_map[channel['parent_id']]
             
-            if self.create_channel(target_id, channel_data):
+            success, _ = self.create_channel(target_id, channel_data)
+            if success:
                 print(f"{Fore.GREEN}✅ Создан канал: {channel['name']}")
                 created_count += 1
             else:
                 print(f"{Fore.RED}❌ Ошибка создания: {channel['name']}")
-            time.sleep(0.5)
+            time.sleep(self.rate_limit_delay)
         
-        print(f"\n{Fore.CYAN}🎉 Готово! Клонирование V2 завершено!")
-        print(f"{Fore.GREEN}✅ Название сервера: {server_name}")
-        print(f"{Fore.GREEN}✅ Создано {len(categories)} категорий, {created_count} каналов и {role_count} ролей!")
-        print(f"{Fore.GREEN}✅ Порядок ролей: ТОЧНО как на исходном сервере!")
-        if server_icon:
-            print(f"{Fore.GREEN}✅ Аватарка сервера скопирована!")
+        # Финальный отчет
+        print(f"\n{Fore.CYAN}{'═' * 60}")
+        print(f"{Fore.MAGENTA}🎉 КЛОНИРОВАНИЕ ЗАВЕРШЕНО!")
+        print(f"{Fore.CYAN}{'═' * 60}")
+        print(f"{Fore.GREEN}✅ Название сервера: {Fore.WHITE}{server_name}")
+        print(f"{Fore.GREEN}✅ Создано категорий: {Fore.WHITE}{len(categories)}")
+        print(f"{Fore.GREEN}✅ Создано каналов: {Fore.WHITE}{created_count}")
+        print(f"{Fore.GREEN}✅ Создано ролей: {Fore.WHITE}{role_count}")
+        if server_icon_b64:
+            print(f"{Fore.GREEN}✅ Аватарка сервера: {Fore.WHITE}Скопирована")
+        print(f"{Fore.CYAN}{'═' * 60}")
 
 def print_banner():
     """Красивый баннер"""
-    print(f"{Fore.CYAN}{'='*60}")
-    print(f"{Fore.MAGENTA}{Back.BLACK}           Discord Server Cloner V2")
-    print(f"{Fore.CYAN}{'='*60}")
+    print(f"\n{Fore.CYAN}{'═' * 60}")
+    print(f"{Fore.MAGENTA}{Back.BLACK}           🚀 Discord Server Cloner")
+    print(f"{Fore.CYAN}{'═' * 60}")
     print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zlafik")
     print(f"{Fore.YELLOW}📞 Контакт: {Fore.WHITE}discord - stylesx2w2")
     print(f"{Fore.YELLOW}📺 YouTube: {Fore.WHITE}https://www.youtube.com/@stylesxwx")
-    print(f"{Fore.YELLOW}📱 Telegram: {Fore.WHITE}https://t.me/peredoznikbio")
-    print(f"{Fore.CYAN}{'='*60}")
-    print(f"{Fore.GREEN}🎯 ОСОБЕННОСТИ V2:")
-    print(f"{Fore.GREEN}✅ Правильный порядок ролей")
-    print(f"{Fore.GREEN}✅ Точная иерархия как на исходном сервере")
-    print(f"{Fore.CYAN}{'='*60}")
+    print(f"{Fore.YELLOW}📱 Telegram: {Fore.WHITE}@zlafik")
+    print(f"{Fore.CYAN}{'═' * 60}")
+    print(f"{Fore.GREEN}🎯 ОСОБЕННОСТИ:")
+    print(f"{Fore.GREEN}✅ Копирование названия и аватарки")
+    print(f"{Fore.GREEN}✅ Создание ролей и каналов")
+    print(f"{Fore.GREEN}✅ Сохранение структуры сервера")
+    print(f"{Fore.GREEN}✅ Улучшенная обработка ошибок")
+    print(f"{Fore.CYAN}{'═' * 60}")
 
 def main():
     print_banner()
@@ -361,7 +385,7 @@ def main():
     target_id = input(f"{Fore.GREEN}[ВВОД] ID целевого сервера: {Fore.WHITE}").strip()
     
     # Проверяем токен
-    cloner = SimpleCloner(token)
+    cloner = AdvancedCloner(token)
     
     # Проверяем доступ к серверам
     print(f"\n{Fore.CYAN}🔍 Проверяем доступ к серверам...")
@@ -381,10 +405,14 @@ def main():
     print(f"{Fore.GREEN}✅ Серверы найдены и доступны!")
     
     # Подтверждение
-    print(f"\n{Fore.RED}⚠️  ВНИМАНИЕ: Все каналы и роли на целевом сервере будут удалены!")
-    print(f"{Fore.YELLOW}💡 Будет скопировано: название, аватарка, роли (с ПРАВИЛЬНЫМ порядком), категории, каналы")
+    print(f"\n{Fore.RED}{'⚠' * 60}")
+    print(f"{Fore.RED}🚨 ВНИМАНИЕ: ВСЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ!")
+    print(f"{Fore.YELLOW}💡 Будет скопировано: название, аватарка, роли, категории, каналы")
+    print(f"{Fore.RED}{'⚠' * 60}")
     confirm = input(f"{Fore.GREEN}[ПОДТВЕРЖДЕНИЕ] Начать клонирование? (y/n): {Fore.WHITE}").lower()
+    
     if confirm == 'y':
+        print(f"\n{Fore.CYAN}🚀 Запускаем процесс клонирования...")
         cloner.clone_server(source_id, target_id)
     else:
         print(f"{Fore.RED}❌ Операция отменена пользователем")
