@@ -1,27 +1,23 @@
-# Check server.py
 import aiohttp
 import asyncio
 from colorama import init, Fore, Back, Style
 
-# Инициализация colorama для цветного вывода
 init(autoreset=True)
 
 def print_banner():
-    """Красивый баннер"""
     print(f"\n{Fore.CYAN}{'═' * 60}")
     print(f"{Fore.MAGENTA}{Back.BLACK}        🚀 Discord Server Checker Pro")
     print(f"{Fore.CYAN}{'═' * 60}")
-    print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zqmpi")
-    print(f"{Fore.YELLOW}📞 Контакт: {Fore.WHITE}discord - stylesx2w2")
-    print(f"{Fore.YELLOW}📺 YouTube: {Fore.WHITE}https://www.youtube.com/@stylesxwx")
+    print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zlafik")
+    print(f"{Fore.YELLOW}📞 Discord: {Fore.WHITE}zlafik")
     print(f"{Fore.YELLOW}📱 Telegram: {Fore.WHITE}@zlafik")
+    print(f"{Fore.YELLOW}📢 Telegram Channel: {Fore.WHITE}@biozlafik")
     print(f"{Fore.CYAN}{'═' * 60}")
 
 async def check_servers(token):
     headers = {'Authorization': token}
     
     async with aiohttp.ClientSession() as session:
-        # Проверяем токен
         print(f"\n{Fore.CYAN}🔍 Проверяем токен...")
         try:
             async with session.get('https://discord.com/api/v9/users/@me', headers=headers) as r:
@@ -32,7 +28,6 @@ async def check_servers(token):
                     print(f"{Fore.CYAN}🆔 ID пользователя: {Fore.WHITE}{user['id']}")
                     print(f"{Fore.CYAN}📧 Email: {Fore.WHITE}{user.get('email', 'Скрыт')}")
                     
-                    # Получаем список серверов
                     print(f"\n{Fore.CYAN}📂 Получаем список серверов...")
                     async with session.get('https://discord.com/api/v9/users/@me/guilds', headers=headers) as guilds_r:
                         if guilds_r.status == 200:
@@ -74,7 +69,6 @@ async def check_servers(token):
 def main():
     print_banner()
     
-    # Выбор способа ввода токена
     print(f"\n{Fore.YELLOW}🔐 Выберите способ ввода токена:")
     print(f"{Fore.CYAN}1. {Fore.WHITE}Ввести токен вручную")
     print(f"{Fore.CYAN}2. {Fore.WHITE}Использовать токен из файла")
@@ -85,13 +79,11 @@ def main():
     token = ""
     
     if choice == "1":
-        # Ввод токена вручную
         print(f"\n{Fore.YELLOW}📝 Введите ваш Discord токен:")
         print(f"{Fore.RED}⚠️  Внимание: Токен будет виден при вводе!")
         token = input(f"{Fore.YELLOW}[?] Токен: {Fore.WHITE}").strip()
         
     elif choice == "2":
-        # Чтение токена из файла
         try:
             with open("token.txt", "r", encoding="utf-8") as f:
                 token = f.read().strip()
@@ -122,13 +114,11 @@ def main():
         input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
         return
     
-    # Проверяем, что токен не пустой
     if not token:
         print(f"{Fore.RED}❌ Токен не может быть пустым!")
         input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
         return
     
-    # Запускаем проверку серверов
     asyncio.run(check_servers(token))
 
 if __name__ == "__main__":

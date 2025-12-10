@@ -1,6 +1,5 @@
-# Installer.bat
 @echo off
-chcp 65001 >nul
+chcp 65001 > nul
 title Installing Dependencies
 
 echo.
@@ -9,9 +8,8 @@ echo    Installing Dependencies
 echo ========================================
 echo.
 
-:: Check Python
-python --version >nul 2>&1
-if errorlevel 1 (
+python --version > nul 2> nul
+if %errorlevel% neq 0 (
     echo ERROR: Python is not installed!
     echo.
     echo Download and install Python from:
@@ -26,10 +24,8 @@ if errorlevel 1 (
 echo Installing required packages...
 echo.
 
-:: Upgrade pip
 python -m pip install --upgrade pip
 
-:: Install packages
 pip install aiohttp
 pip install colorama
 pip install certifi

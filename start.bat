@@ -1,5 +1,5 @@
 @echo off
-chcp 65001 >nul
+chcp 65001 > nul
 title Discord Server Cloner V3
 
 echo.
@@ -8,9 +8,8 @@ echo    Discord Server Cloner V3
 echo ========================================
 echo.
 
-:: Check Python
-python --version >nul 2>&1
-if errorlevel 1 (
+python --version > nul 2> nul
+if %errorlevel% neq 0 (
     echo ERROR: Python is not installed!
     echo Please run Installer.bat first
     echo.
@@ -18,9 +17,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Check if dependencies are installed
-python -c "import aiohttp, colorama, certifi, requests" >nul 2>&1
-if errorlevel 1 (
+python -c "import aiohttp, colorama, certifi, requests" > nul 2> nul
+if %errorlevel% neq 0 (
     echo ERROR: Some dependencies are missing!
     echo Please run Installer.bat first
     echo.

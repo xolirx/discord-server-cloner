@@ -2,36 +2,25 @@
 
 ## Supported Versions
 
-The following versions of the project are currently being supported with security updates.
-
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| 3.0.x   | :white_check_mark: |
+| 2.0.x   | :x:                |
+| 1.0.x   | :x:                |
 
 ## Reporting a Vulnerability
 
-We take the security of our project seriously. If you believe you have found a security vulnerability, please report it to us as described below.
-
-**Please do not report security vulnerabilities through public GitHub issues.**
-
-Instead, please report them via email to `fendihan7765@gmail.com` .
+Please report security vulnerabilities via email to `zlafik@telegram` or contact me on Discord: `zlafik`
 
 ### What to include in your report:
+- Description of the vulnerability
+- Steps to reproduce the issue
+- Affected versions
+- Potential impact
 
-To help us understand and resolve the issue faster, please include as much of the following as possible:
-- A description of the vulnerability.
-- The steps to reproduce the issue.
-- The affected versions of the project.
-- Any potential impact or exploit scenario.
+### Response Time:
+- Acknowledgment within 48 hours
+- Detailed response within 5 business days
+- Regular updates on progress
 
-### What to expect:
-
-- **Response Time:** We will endeavor to acknowledge your report within **48 hours** and will strive to send you a more detailed response within **5 business days**.
-- **Updates:** We will keep you informed about the progress towards fixing the vulnerability.
-- **Acceptance:** If the vulnerability is accepted, we will work on a fix and release a security update for the supported versions.
-- **Declination:** If the vulnerability is declined, we will provide you with a reason for our decision.
-
-We appreciate your help in disclosing the issue responsibly and thank you for helping to improve the security of our project.
+Thank you for helping to improve the security of this project.
