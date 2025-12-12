@@ -1,3 +1,4 @@
+from colorama import Fore, Back, Style, init
 import urllib.request
 import urllib.error
 import json
@@ -5,9 +6,76 @@ import ssl
 import time
 import base64
 import os
-from colorama import init, Fore, Back, Style
+import aiohttp
+import asyncio
 
 init(autoreset=True)
+
+# Определяем цвета как переменные
+BLUE = Fore.BLUE
+CYAN = Fore.CYAN
+WHITE = Fore.WHITE
+GREEN = Fore.GREEN
+YELLOW = Fore.YELLOW
+RED = Fore.RED
+MAGENTA = Fore.MAGENTA
+BLACK_BG = Back.BLACK
+
+def line(width=65):
+    return BLUE + "═" * width
+
+def header(text):
+    print(f"\n{BLUE}{'═' * 65}")
+    print(f"{CYAN}{text}")
+    print(f"{BLUE}{'═' * 65}")
+
+def info(text):
+    print(f"{CYAN}• {WHITE}{text}")
+
+def success(text):
+    print(f"{GREEN}✓ {WHITE}{text}")
+
+def warning(text):
+    print(f"{YELLOW}! {WHITE}{text}")
+
+def error(text):
+    print(f"{RED}✖ {WHITE}{text}")
+
+def input_prompt(text):
+    return input(f"{CYAN}[?] {text}{WHITE}")
+
+def input_field(text):
+    return input(f"{CYAN}>> {text}: {WHITE}")
+
+def print_banner():
+    header("✨ DISCORD SERVER CLONER V3 — BLUE EDITION ✨")
+    print(f"{WHITE}👤 Автор: {CYAN}zlafik")
+    print(f"{WHITE}📞 Discord: {CYAN}zlafik")
+    print(f"{WHITE}📱 Telegram: {CYAN}@zlafik")
+    print(f"{WHITE}📢 Канал: {CYAN}@biozlafik")
+    print(line())
+    print(f"{BLUE}🎯 Возможности программы:")
+    info("Полное клонирование структуры сервера")
+    info("Сохранение ролей, каналов и категорий")
+    info("Чистый улучшенный интерфейс")
+    info("Удобные подсказки и информативные уведомления")
+    print(line())
+
+def print_user_agreement():
+    header("📜 ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ")
+    warning("ВНИМАТЕЛЬНО ПРОЧИТАЙТЕ ПЕРЕД ИСПОЛЬЗОВАНИЕМ:")
+    info("1. Вы несете полную ответственность за использование программы")
+    info("2. Разработчик не несет ответственности за последствия")
+    info("3. Использование программы осуществляется на свой риск")
+    info("4. Запрещено использовать программу во вред другим пользователям")
+    print(line())
+    error("⚠️  ПРИНИМАЯ СОГЛАШЕНИЕ, ВЫ ПОДТВЕРЖДАЕТЕ ПОЛНОЕ ПОНИМАНИЕ РИСКОВ")
+    print(line())
+
+def confirm_agreement():
+    print_user_agreement()
+    confirmation = input_prompt("Для подтверждения введите: 'Подтвердить - zlafik'\n>> ").strip()
+    return confirmation == "Подтвердить - zlafik"
 
 ssl_context = ssl.create_default_context()
 ssl_context.check_hostname = False
@@ -45,17 +113,17 @@ class AdvancedCloner:
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 retry_after = e.headers.get('Retry-After', 2)
-                print(f"{Fore.YELLOW}⚠️  Rate limit, ждем {retry_after} секунд...")
+                warning(f"Rate limit, ждем {retry_after} секунд...")
                 time.sleep(float(retry_after))
                 return self.make_request(method, url, data)
-            print(f"{Fore.RED}❌ HTTP Error {e.code}: {e.reason}")
+            error(f"HTTP Error {e.code}: {e.reason}")
             if e.code == 401:
-                print(f"{Fore.RED}🔑 Неверный токен!")
+                error("Неверный токен!")
             elif e.code == 403:
-                print(f"{Fore.RED}🚫 Нет прав доступа!")
+                error("Нет прав доступа!")
             return e, None
         except Exception as e:
-            print(f"{Fore.RED}❌ Request Error: {e}")
+            error(f"Request Error: {e}")
             return None, e
     
     def get_server_info(self, server_id):
@@ -98,7 +166,7 @@ class AdvancedCloner:
                     return base64.b64encode(icon_data).decode()
             return None
         except Exception as e:
-            print(f"{Fore.YELLOW}⚠️  Ошибка загрузки аватарки: {e}")
+            warning(f"Ошибка загрузки аватарки: {e}")
             return None
     
     def delete_channel(self, channel_id):
@@ -134,90 +202,89 @@ class AdvancedCloner:
                 if response.status == 204:
                     return True
                 else:
-                    print(f"{Fore.YELLOW}⚠️  Неожиданный статус код: {response.status}")
+                    warning(f"Неожиданный статус код: {response.status}")
                     return False
                     
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                print(f"{Fore.YELLOW}⚠️  Rate limit, ждем...")
+                warning("Rate limit, ждем...")
                 time.sleep(2)
                 return self.delete_role(server_id, role_id)
-            print(f"{Fore.RED}❌ HTTP Error {e.code} при удалении роли: {e.reason}")
+            error(f"HTTP Error {e.code} при удалении роли: {e.reason}")
             return False
         except Exception as e:
-            print(f"{Fore.RED}❌ Request Error при удалении роли: {e}")
+            error(f"Request Error при удалении роли: {e}")
             return False
     
     def clone_server(self, source_id, target_id):
-        print(f"\n{Fore.CYAN}🚀 Запускаем клонирование...")
-        print(f"{Fore.CYAN}{'═' * 60}")
+        header("🚀 ЗАПУСК КЛОНИРОВАНИЯ")
         
-        print(f"{Fore.MAGENTA}📡 Получаем информацию о серверах...")
+        info("Получаем информацию о серверах...")
         source_info = self.get_server_info(source_id)
         if not source_info:
-            print(f"{Fore.RED}❌ Не удалось получить информацию об исходном сервере!")
+            error("Не удалось получить информацию об исходном сервере!")
             return
         
         server_name = source_info.get('name', 'Unknown Server')
         
-        print(f"\n{Fore.BLUE}📝 Копируем название сервера...")
+        info("Копируем название сервера...")
         name_data = {'name': server_name}
         if self.update_server_info(target_id, name_data):
-            print(f"{Fore.GREEN}✅ Название скопировано: {Fore.WHITE}{server_name}")
+            success(f"Название скопировано: {server_name}")
         else:
-            print(f"{Fore.RED}❌ Ошибка копирования названия")
+            error("Ошибка копирования названия")
         
-        print(f"\n{Fore.BLUE}🖼️  Копируем аватарку сервера...")
+        info("Копируем аватарку сервера...")
         server_icon_b64 = self.get_server_icon(source_id)
         if server_icon_b64:
             try:
                 icon_data = {'icon': f"data:image/png;base64,{server_icon_b64}"}
                 if self.update_server_info(target_id, icon_data):
-                    print(f"{Fore.GREEN}✅ Аватарка скопирована!")
+                    success("Аватарка скопирована!")
                 else:
-                    print(f"{Fore.RED}❌ Ошибка копирования аватарки")
+                    error("Ошибка копирования аватарки")
             except Exception as e:
-                print(f"{Fore.RED}❌ Ошибка при обработке аватарки: {e}")
+                error(f"Ошибка при обработке аватарки: {e}")
         else:
-            print(f"{Fore.YELLOW}⚠️  У исходного сервера нет аватарки")
+            warning("У исходного сервера нет аватарки")
         
-        print(f"{Fore.MAGENTA}📊 Анализируем структуру серверов...")
+        info("Анализируем структуру серверов...")
         source_channels = self.get_channels(source_id)
         target_channels = self.get_channels(target_id)
         source_roles = self.get_roles(source_id)
         target_roles = self.get_roles(target_id)
         
-        print(f"{Fore.GREEN}📁 Исходный сервер: {len(source_channels)} каналов, {len(source_roles)} ролей")
-        print(f"{Fore.YELLOW}📁 Целевой сервер: {len(target_channels)} каналов, {len(target_roles)} ролей")
+        success(f"Исходный сервер: {len(source_channels)} каналов, {len(source_roles)} ролей")
+        warning(f"Целевой сервер: {len(target_channels)} каналов, {len(target_roles)} ролей")
         
-        print(f"\n{Fore.RED}🗑️  Очищаем целевой сервер...")
-        print(f"{Fore.RED}├── Удаляем каналы...")
+        header("🗑️  ОЧИСТКА ЦЕЛЕВОГО СЕРВЕРА")
+        
+        info("Удаляем каналы...")
         channels_deleted = 0
         for channel in target_channels:
             if self.delete_channel(channel['id']):
-                print(f"{Fore.GREEN}│   ✅ Удален: {channel['name']}")
+                success(f"Удален канал: {channel['name']}")
                 channels_deleted += 1
             else:
-                print(f"{Fore.RED}│   ❌ Ошибка: {channel['name']}")
+                error(f"Ошибка удаления: {channel['name']}")
             time.sleep(self.rate_limit_delay)
         
-        print(f"{Fore.RED}└── Удаляем роли...")
+        info("Удаляем роли...")
         roles_deleted = 0
         for role in target_roles:
             if not role['managed'] and role['name'] != '@everyone':
                 if self.delete_role(target_id, role['id']):
-                    print(f"{Fore.GREEN}    ✅ Удалена: {role['name']}")
+                    success(f"Удалена роль: {role['name']}")
                     roles_deleted += 1
                 else:
-                    print(f"{Fore.RED}    ❌ Ошибка: {role['name']}")
+                    error(f"Ошибка удаления: {role['name']}")
                 time.sleep(self.rate_limit_delay)
         
-        print(f"{Fore.GREEN}✅ Удалено: {channels_deleted} каналов, {roles_deleted} ролей")
+        success(f"Удалено: {channels_deleted} каналов, {roles_deleted} ролей")
         
-        print(f"\n{Fore.MAGENTA}🎨 Создаем роли...")
+        header("🎨 СОЗДАНИЕ РОЛЕЙ")
         
         roles_to_create = [role for role in source_roles if not role['managed'] and role['name'] != '@everyone']
-        
         sorted_roles = sorted(roles_to_create, key=lambda x: x['position'], reverse=True)
         
         role_mapping = {}
@@ -232,17 +299,16 @@ class AdvancedCloner:
                 'permissions': str(role['permissions'])
             }
             
-            success, response_data = self.create_role(target_id, role_data)
-            if success:
+            success_create, response_data = self.create_role(target_id, role_data)
+            if success_create:
                 role_mapping[role['name']] = response_data['id']
-                print(f"{Fore.GREEN}✅ Создана роль: {role['name']}")
+                success(f"Создана роль: {role['name']}")
                 role_count += 1
             else:
-                print(f"{Fore.RED}❌ Ошибка создания: {role['name']}")
+                error(f"Ошибка создания: {role['name']}")
             time.sleep(self.rate_limit_delay)
         
-        print(f"\n{Fore.BLUE}📊 Устанавливаем порядок ролей...")
-        
+        info("Устанавливаем порядок ролей...")
         if role_mapping:
             position_updates = []
             for source_role in sorted_roles:
@@ -253,18 +319,18 @@ class AdvancedCloner:
                     })
             
             if position_updates and self.update_role_positions(target_id, position_updates):
-                print(f"{Fore.GREEN}✅ Порядок ролей обновлен!")
+                success("Порядок ролей обновлен!")
             else:
-                print(f"{Fore.YELLOW}⚠️  Не удалось обновить порядок ролей")
+                warning("Не удалось обновить порядок ролей")
         else:
-            print(f"{Fore.YELLOW}⚠️  Нет ролей для обновления позиций")
+            warning("Нет ролей для обновления позиций")
         
-        print(f"\n{Fore.CYAN}🏗️  Создаем структуру каналов...")
+        header("🏗️  СОЗДАНИЕ СТРУКТУРЫ КАНАЛОВ")
         
         categories = [ch for ch in source_channels if ch['type'] == 4]
         category_map = {}
         
-        print(f"{Fore.BLUE}📂 Создаем категории...")
+        info("Создаем категории...")
         for category in categories:
             category_data = {
                 'name': category['name'],
@@ -272,18 +338,18 @@ class AdvancedCloner:
                 'position': category['position']
             }
             
-            success, data = self.create_channel(target_id, category_data)
-            if success:
+            success_create, data = self.create_channel(target_id, category_data)
+            if success_create:
                 category_map[category['id']] = data['id']
-                print(f"{Fore.GREEN}✅ Создана категория: {category['name']}")
+                success(f"Создана категория: {category['name']}")
             else:
-                print(f"{Fore.RED}❌ Ошибка создания категории: {category['name']}")
+                error(f"Ошибка создания категории: {category['name']}")
             time.sleep(self.rate_limit_delay)
         
         created_count = 0
         channels = [ch for ch in source_channels if ch['type'] != 4]
         
-        print(f"{Fore.BLUE}📝 Создаем каналы...")
+        info("Создаем каналы...")
         for channel in channels:
             channel_data = {
                 'name': channel['name'],
@@ -294,99 +360,227 @@ class AdvancedCloner:
             if channel.get('parent_id') and channel['parent_id'] in category_map:
                 channel_data['parent_id'] = category_map[channel['parent_id']]
             
-            success, _ = self.create_channel(target_id, channel_data)
-            if success:
-                print(f"{Fore.GREEN}✅ Создан канал: {channel['name']}")
+            success_create, _ = self.create_channel(target_id, channel_data)
+            if success_create:
+                success(f"Создан канал: {channel['name']}")
                 created_count += 1
             else:
-                print(f"{Fore.RED}❌ Ошибка создания: {channel['name']}")
+                error(f"Ошибка создания: {channel['name']}")
             time.sleep(self.rate_limit_delay)
         
-        print(f"\n{Fore.CYAN}{'═' * 60}")
-        print(f"{Fore.MAGENTA}🎉 КЛОНИРОВАНИЕ ЗАВЕРШЕНО!")
-        print(f"{Fore.CYAN}{'═' * 60}")
-        print(f"{Fore.GREEN}✅ Название сервера: {Fore.WHITE}{server_name}")
-        print(f"{Fore.GREEN}✅ Создано категорий: {Fore.WHITE}{len(categories)}")
-        print(f"{Fore.GREEN}✅ Создано каналов: {Fore.WHITE}{created_count}")
-        print(f"{Fore.GREEN}✅ Создано ролей: {Fore.WHITE}{role_count}")
+        header("🎉 КЛОНИРОВАНИЕ ЗАВЕРШЕНО")
+        success(f"Название сервера: {server_name}")
+        success(f"Создано категорий: {len(categories)}")
+        success(f"Создано каналов: {created_count}")
+        success(f"Создано ролей: {role_count}")
         if server_icon_b64:
-            print(f"{Fore.GREEN}✅ Аватарка сервера: {Fore.WHITE}Скопирована")
-        print(f"{Fore.CYAN}{'═' * 60}")
+            success("Аватарка сервера: Скопирована")
+        print(line())
 
-def print_banner():
-    print(f"\n{Fore.CYAN}{'═' * 60}")
-    print(f"{Fore.MAGENTA}{Back.BLACK}           🚀 Discord Server Cloner V3")
-    print(f"{Fore.CYAN}{'═' * 60}")
-    print(f"{Fore.YELLOW}👤 Автор: {Fore.WHITE}zlafik")
-    print(f"{Fore.YELLOW}📞 Discord: {Fore.WHITE}zlafik")
-    print(f"{Fore.YELLOW}📱 Telegram: {Fore.WHITE}@zlafik")
-    print(f"{Fore.YELLOW}📢 Telegram Channel: {Fore.WHITE}@biozlafik")
-    print(f"{Fore.CYAN}{'═' * 60}")
-    print(f"{Fore.GREEN}🎯 ОСОБЕННОСТИ:")
-    print(f"{Fore.GREEN}✅ Копирование названия и аватарки")
-    print(f"{Fore.GREEN}✅ Создание ролей и каналов")
-    print(f"{Fore.GREEN}✅ Сохранение структуры сервера")
-    print(f"{Fore.GREEN}✅ Правильный порядок ролей")
-    print(f"{Fore.GREEN}✅ Улучшенная обработка ошибок")
-    print(f"{Fore.CYAN}{'═' * 60}")
+async def check_servers_async(token):
+    headers = {'Authorization': token}
+    
+    async with aiohttp.ClientSession() as session:
+        info("Проверяем токен...")
+        try:
+            async with session.get('https://discord.com/api/v9/users/@me', headers=headers) as r:
+                if r.status == 200:
+                    user = await r.json()
+                    success("ТОКЕН РАБОЧИЙ!")
+                    info(f"Пользователь: {user['username']}#{user['discriminator']}")
+                    info(f"ID пользователя: {user['id']}")
+                    info(f"Email: {user.get('email', 'Скрыт')}")
+                    
+                    info("Получаем список серверов...")
+                    async with session.get('https://discord.com/api/v9/users/@me/guilds', headers=headers) as guilds_r:
+                        if guilds_r.status == 200:
+                            guilds = await guilds_r.json()
+                            success(f"Найдено серверов: {len(guilds)}")
+                            
+                            header("📋 СПИСОК СЕРВЕРОВ")
+                            for i, guild in enumerate(guilds, 1):
+                                guild_id = guild['id']
+                                guild_name = guild['name']
+                                permissions = guild.get('permissions', 0)
+                                is_admin = (int(permissions) & 0x8) == 0x8
+                                admin_badge = f" {RED}[ADMIN]" if is_admin else ""
+                                
+                                print(f"{WHITE}{i:2d}. {guild_name}{admin_badge}")
+                                print(f"    {CYAN}ID: {WHITE}{guild_id}")
+                                if i < len(guilds):
+                                    print(f"{BLUE}    {'─' * 40}")
+                            
+                            print(line())
+                            success("Все сервера загружены успешно!")
+                                
+                        else:
+                            error(f"Не удалось получить список серверов: {guilds_r.status}")
+                else:
+                    error(f"Токен невалидный: {r.status}")
+        except aiohttp.ClientConnectionError:
+            error("Ошибка подключения к Discord!")
+            return
+        except asyncio.TimeoutError:
+            error("Таймаут подключения!")
+            return
+        except Exception as e:
+            error(f"Неожиданная ошибка: {e}")
+            return
 
-def main():
+def check_servers(token):
+    asyncio.run(check_servers_async(token))
+
+def check_server_menu():
     print_banner()
     
-    print(f"\n{Fore.WHITE}Введите данные для клонирования:")
+    info("Выберите способ ввода токена:")
+    info("1. Ввести токен вручную")
+    info("2. Использовать токен из файла")
+    info("3. Инструкция по получению токена")
+    info("4. Назад в главное меню")
     
-    print(f"\n{Fore.YELLOW}[ТОКЕН] {Fore.WHITE}Токен вашего Discord аккаунта")
-    print(f"{Fore.CYAN}>> {Fore.WHITE}Нужен для доступа к API Discord")
-    token = input(f"{Fore.GREEN}[ВВОД] Введите токен: {Fore.WHITE}").strip()
+    choice = input_prompt("Выберите вариант (1/2/3/4): ").strip()
     
-    if not token:
-        print(f"{Fore.RED}❌ Токен не может быть пустым!")
+    if choice == "4":
         return
     
-    print(f"\n{Fore.YELLOW}[ИСХОДНЫЙ СЕРВЕР] {Fore.WHITE}ID сервера, который копируем")
-    print(f"{Fore.CYAN}>> {Fore.WHITE}Берем из Check server.py или через Разработчика (F12)")
-    source_id = input(f"{Fore.GREEN}[ВВОД] ID исходного сервера: {Fore.WHITE}").strip()
+    token = ""
     
-    print(f"\n{Fore.YELLOW}[ЦЕЛЕВОЙ СЕРВЕР] {Fore.WHITE}ID пустого сервера, куда копируем")
-    print(f"{Fore.CYAN}>> {Fore.WHITE}Создайте новый сервер или используйте существующий")
-    target_id = input(f"{Fore.GREEN}[ВВОД] ID целевого сервера: {Fore.WHITE}").strip()
+    if choice == "1":
+        warning("Внимание: Токен будет виден при вводе!")
+        token = input_field("Введите токен")
+        
+    elif choice == "2":
+        try:
+            with open("token.txt", "r", encoding="utf-8") as f:
+                token = f.read().strip()
+            success("Токен успешно загружен из файла token.txt")
+        except FileNotFoundError:
+            error("Файл token.txt не найден!")
+            info("Создайте файл token.txt и поместите в него ваш токен")
+            input_prompt("Нажмите Enter для продолжения...")
+            check_server_menu()
+            return
+        except Exception as e:
+            error(f"Ошибка при чтении файла: {e}")
+            input_prompt("Нажмите Enter для продолжения...")
+            check_server_menu()
+            return
+    
+    elif choice == "3":
+        header("📖 ИНСТРУКЦИЯ ПО ПОЛУЧЕНИЮ ТОКЕНА")
+        info("1. Откройте Discord в браузере")
+        info("2. Нажмите F12 → Вкладка 'Network'")
+        info("3. Обновите страницу (F5)")
+        info("4. Найдите любой запрос к discord.com")
+        info("5. В Headers найдите 'Authorization'")
+        info("6. Скопируйте токен (начинается с букв)")
+        warning("⚠️  Никому не передавайте ваш токен!")
+        input_prompt("Нажмите Enter для возврата...")
+        check_server_menu()
+        return
+    
+    else:
+        error("Неверный выбор!")
+        input_prompt("Нажмите Enter для продолжения...")
+        check_server_menu()
+        return
+    
+    if not token:
+        error("Токен не может быть пустым!")
+        input_prompt("Нажмите Enter для продолжения...")
+        check_server_menu()
+        return
+    
+    check_servers(token)
+    input_prompt("Нажмите Enter для возврата в меню...")
+
+def main_cloner():
+    if not confirm_agreement():
+        error("Вы не подтвердили пользовательское соглашение!")
+        input_prompt("Нажмите Enter для выхода...")
+        return
+    
+    print_banner()
+    
+    info("Введите данные для клонирования:")
+    
+    token = input_field("Токен Discord")
+    if not token:
+        error("Токен не может быть пустым!")
+        input_prompt("Нажмите Enter для продолжения...")
+        return
+    
+    source_id = input_field("ID исходного сервера")
+    target_id = input_field("ID целевого сервера")
     
     cloner = AdvancedCloner(token)
     
-    print(f"\n{Fore.CYAN}🔍 Проверяем доступ к серверам...")
+    info("Проверяем доступ к серверам...")
     servers = cloner.get_servers()
     source_exists = any(s['id'] == source_id for s in servers)
     target_exists = any(s['id'] == target_id for s in servers)
     
     if not source_exists:
-        print(f"{Fore.RED}❌ Исходный сервер не найден!")
-        print(f"{Fore.YELLOW}💡 Убедитесь, что у вас есть доступ к этому серверу")
+        error("Исходный сервер не найден!")
+        warning("Убедитесь, что у вас есть доступ к этому серверу")
+        input_prompt("Нажмите Enter для продолжения...")
         return
+    
     if not target_exists:
-        print(f"{Fore.RED}❌ Целевой сервер не найден!")
-        print(f"{Fore.YELLOW}💡 Убедитесь, что у вас есть доступ к этому серверу")
+        error("Целевой сервер не найден!")
+        warning("Убедитесь, что у вас есть доступ к этому серверу")
+        input_prompt("Нажмите Enter для продолжения...")
         return
     
-    print(f"{Fore.GREEN}✅ Серверы найдены и доступны!")
+    success("Серверы найдены и доступны!")
     
-    print(f"\n{Fore.RED}{'⚠' * 60}")
-    print(f"{Fore.RED}🚨 ВНИМАНИЕ: ВСЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ!")
-    print(f"{Fore.YELLOW}💡 Будет скопировано: название, аватарка, роли, категории, каналы")
-    print(f"{Fore.RED}{'⚠' * 60}")
-    confirm = input(f"{Fore.GREEN}[ПОДТВЕРЖДЕНИЕ] Начать клонирование? (y/n): {Fore.WHITE}").lower()
+    header("⚠️  ВАЖНОЕ ПРЕДУПРЕЖДЕНИЕ")
+    error("ВСЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ!")
+    warning("Будет скопировано: название, аватарка, роли, категории, каналы")
+    print(line())
+    
+    confirm = input_prompt("Начать клонирование? (y/n): ").lower()
     
     if confirm == 'y':
-        print(f"\n{Fore.CYAN}🚀 Запускаем процесс клонирования...")
         cloner.clone_server(source_id, target_id)
     else:
-        print(f"{Fore.RED}❌ Операция отменена пользователем")
+        error("Операция отменена пользователем")
+    
+    input_prompt("Нажмите Enter для возврата в меню...")
+
+def main_menu():
+    print_banner()
+    
+    info("Выберите режим работы:")
+    info("1. Клонирование сервера")
+    info("2. Проверка серверов (получить ID)")
+    info("3. Выход")
+    
+    choice = input_prompt("Выберите вариант (1/2/3): ").strip()
+    
+    if choice == "1":
+        main_cloner()
+        main_menu()
+    elif choice == "2":
+        check_server_menu()
+        main_menu()
+    elif choice == "3":
+        success("До свидания!")
+        return
+    else:
+        error("Неверный выбор!")
+        input_prompt("Нажмите Enter для продолжения...")
+        main_menu()
 
 if __name__ == "__main__":
     try:
-        main()
+        main_menu()
     except KeyboardInterrupt:
-        print(f"\n{Fore.RED}❌ Программа прервана пользователем")
+        print()
+        error("Программа прервана пользователем")
     except Exception as e:
-        print(f"\n{Fore.RED}❌ Произошла ошибка: {e}")
+        print()
+        error(f"Произошла ошибка: {e}")
     
-    input(f"\n{Fore.CYAN}Нажмите Enter для выхода...")
+    input_prompt("Нажмите Enter для выхода...")

@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 > nul
-title Discord Server Cloner V3
+title Discord Server Cloner V3 - Blue Edition
 
 echo.
 echo ========================================
-echo    Discord Server Cloner V3
+echo    Discord Server Cloner V3 - Blue Edition
 echo ========================================
 echo.
 
@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo Starting Discord Server Cloner V3...
+echo Starting Discord Server Cloner V3 - Blue Edition...
 echo.
 python channel_copier.py
 pause
