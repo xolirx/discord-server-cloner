@@ -38,7 +38,7 @@ try:
 except ImportError:
     BLUE = CYAN = WHITE = GREEN = RED = YELLOW = MAGENTA = ""
 
-VERSION = "5.0.0"
+VERSION = "5.1.0"
 AUTHOR = "qtiq0"
 DISCORD = "zlafik"
 TELEGRAM = "@qtiq0"
@@ -140,7 +140,7 @@ class DiscordValidator:
             return False
         
         token = token.strip()
-        if len(token) < 50:
+        if len(token) < 59:
             return False
         
         patterns = [
@@ -207,9 +207,9 @@ class RequestManager:
     def __init__(self, headers: Dict[str, str]):
         self.headers = headers.copy()
         self.ssl_context = SafeSSLContext()
-        self.max_retries = 5
-        self.base_delay = 3.0
-        self.timeout = 60
+        self.max_retries = 7
+        self.base_delay = 2.0
+        self.timeout = 75
         self.request_count = 0
         
         self.headers.update({
@@ -227,20 +227,20 @@ class RequestManager:
         })
 
     def _calculate_delay(self, attempt: int) -> float:
-        return self.base_delay + (attempt * 1.5)
+        return self.base_delay + (attempt * 1.2)
 
     def _handle_rate_limit(self, headers: Dict) -> float:
         retry_after = headers.get('Retry-After')
         if retry_after:
             try:
-                return float(retry_after) + 3.0
+                return float(retry_after) + 2.5
             except:
                 pass
         
         reset_after = headers.get('X-RateLimit-Reset-After')
         if reset_after:
             try:
-                return float(reset_after) + 3.0
+                return float(reset_after) + 2.5
             except:
                 pass
         
@@ -251,12 +251,12 @@ class RequestManager:
             try:
                 current_time = time.time()
                 reset_time = float(reset)
-                delay = max(reset_time - current_time, 0) + 3.0
+                delay = max(reset_time - current_time, 0) + 2.5
                 return delay
             except:
                 pass
         
-        return 5.0
+        return 4.0
 
     def _prepare_data(self, data: Any) -> Optional[bytes]:
         if data is None:
@@ -302,9 +302,9 @@ class RequestManager:
     def request(self, method: str, url: str, data: Any = None) -> Tuple[Optional[Any], Optional[Any]]:
         self.request_count += 1
         
-        if self.request_count % 10 == 0:
+        if self.request_count % 8 == 0:
             информация(f"Выполнено запросов: {self.request_count}")
-            time.sleep(2.0)
+            time.sleep(1.5)
         
         headers = self.headers.copy()
         
@@ -351,7 +351,7 @@ class RequestManager:
                             ошибка(f"Сообщение Discord: {сообщение}")
                         
                         if attempt < self.max_retries - 1:
-                            время_ожидания = 8.0 + (attempt * 3.0)
+                            время_ожидания = 7.0 + (attempt * 2.5)
                             предупреждение(f"Повтор через {время_ожидания:.1f} сек...")
                             time.sleep(время_ожидания)
                             continue
@@ -395,7 +395,7 @@ class RequestManager:
                         pass
                     
                     if attempt < self.max_retries - 1:
-                        время_ожидания = 10.0 + (attempt * 4.0)
+                        время_ожидания = 8.0 + (attempt * 3.0)
                         предупреждение(f"Повтор через {время_ожидания:.1f} сек...")
                         time.sleep(время_ожидания)
                         continue
@@ -429,13 +429,13 @@ class RequestManager:
             
             except urllib.error.URLError as e:
                 ошибка(f"Ошибка сети: {e.reason}")
-                время_ожидания = 5.0 + (attempt * 2.0)
+                время_ожидания = 4.0 + (attempt * 1.5)
                 предупреждение(f"Повтор через {время_ожидания:.1f} сек...")
                 time.sleep(время_ожидания)
             
             except ssl.SSLError as e:
                 ошибка(f"Ошибка SSL: {e}")
-                время_ожидания = 3.0 + attempt
+                время_ожидания = 2.5 + attempt
                 предупреждение(f"Повтор через {время_ожидания:.1f} сек...")
                 time.sleep(время_ожидания)
             
@@ -443,7 +443,7 @@ class RequestManager:
                 ошибка(f"Неожиданная ошибка в запросе: {type(e).__name__}: {e}")
                 
                 if attempt < self.max_retries - 1:
-                    время_ожидания = 4.0 + (attempt * 2.0)
+                    время_ожидания = 3.5 + (attempt * 1.5)
                     предупреждение(f"Повтор через {время_ожидания:.1f} сек...")
                     time.sleep(время_ожидания)
                 else:
@@ -486,13 +486,13 @@ class AdvancedCloner:
             'Sec-Fetch-Site': 'same-origin',
             'X-Debug-Options': 'bugReporterEnabled',
             'X-Discord-Locale': 'en-US',
-            'X-Super-Properties': 'eyJvcyI6IldpbmRvd3MiLCJicm93c2VyIjoiRGlzY29yZCBDbGllbnQiLCJyZWxlYXNlX2NoYW5uZWwiOiJzdGFibGUiLCJjbGllbnRfdmVyc2lvbiI6IjEuMC45MDE2Iiwib3NfdmVyc2lvbiI6IjEwLjAuMjI2MjEiLCJvc19hcmNoIjoieDY0Iiwic3lzdGVtX2xvY2FsZSI6ImVuLVVTIiwiY2xpZW50X2J1aWxkX251bWJlciI6MjQxODQ2LCJuYXRpdmVfYnVpbGRfbnVtYmVyIjozODA1OCwiY2xpZW50X2V2ZW50X3NvdXJjZSI6bnVsbH0='
+            'X-Super-Properties': 'eyJvsiOiJXaW5kb3dzIiwiYnJvd3NlciI6IkRpc2NvcmQgQ2xpZW50IiwicmVsZWFzZV9jaGFubmVsIjoic3RhYmxlIiwiY2xpZW50X3ZlcnNpb24iOiIxLjAuOTAxNiIsIm9zX3ZlcnNpb24iOiIxMC4wLjIyNjIxIiwib3NfYXJjaCI6Ing2NCIsInN5c3RlbV9sb2NhbGUiOiJlbi1VUyIsImNsaWVudF9idWlsZF9udW1iZXIiOjI0MTg0NiwibmF0aXZlX2J1aWxkX251bWJlciI6MzgwNTgsImNsaWVudF9ldmVudF9zb3VyY2UiOm51bGx9'
         }
         
         self.request_manager = RequestManager(self.headers)
-        self.channel_delay = 2.5
-        self.role_delay = 3.0
-        self.bulk_delay = 5.0
+        self.channel_delay = 2.0
+        self.role_delay = 2.5
+        self.bulk_delay = 4.0
         self.cache = {}
         self.cache_expiry = {}
 
@@ -511,7 +511,7 @@ class AdvancedCloner:
         
         return False
 
-    def _get_cached_data(self, key: str, max_age: int = 300) -> Optional[Any]:
+    def _get_cached_data(self, key: str, max_age: int = 240) -> Optional[Any]:
         if key in self.cache:
             if key in self.cache_expiry:
                 if time.time() < self.cache_expiry[key]:
@@ -520,7 +520,7 @@ class AdvancedCloner:
                 return self.cache[key]
         return None
 
-    def _set_cached_data(self, key: str, data: Any, max_age: int = 300):
+    def _set_cached_data(self, key: str, data: Any, max_age: int = 240):
         self.cache[key] = data
         self.cache_expiry[key] = time.time() + max_age
 
@@ -569,7 +569,7 @@ class AdvancedCloner:
             return []
         
         cache_key = f"channels_{server_id}"
-        cached = self._get_cached_data(cache_key, 180)
+        cached = self._get_cached_data(cache_key, 150)
         if cached:
             return cached
         
@@ -578,7 +578,7 @@ class AdvancedCloner:
         
         if self._check_response(response, "get_channels"):
             if isinstance(data, list):
-                self._set_cached_data(cache_key, data, 180)
+                self._set_cached_data(cache_key, data, 150)
                 return data
             else:
                 ошибка(f"Неверный формат данных каналов: {type(data)}")
@@ -591,7 +591,7 @@ class AdvancedCloner:
             return []
         
         cache_key = f"roles_{server_id}"
-        cached = self._get_cached_data(cache_key, 180)
+        cached = self._get_cached_data(cache_key, 150)
         if cached:
             return cached
         
@@ -600,7 +600,7 @@ class AdvancedCloner:
         
         if self._check_response(response, "get_roles"):
             if isinstance(data, list):
-                self._set_cached_data(cache_key, data, 180)
+                self._set_cached_data(cache_key, data, 150)
                 return data
             else:
                 ошибка(f"Неверный формат данных ролей: {type(data)}")
@@ -623,7 +623,7 @@ class AdvancedCloner:
                         'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (DiscordCloner/{VERSION})'
                     })
                     
-                    with urllib.request.urlopen(req, timeout=45) as response:
+                    with urllib.request.urlopen(req, timeout=35) as response:
                         if response.status == 200:
                             icon_data = response.read()
                             return base64.b64encode(icon_data).decode('utf-8')
@@ -645,7 +645,7 @@ class AdvancedCloner:
         
         if self._check_response(response, f"delete_channel ({channel_name})"):
             успех(f"Удален канал: {channel_name}")
-            time.sleep(self.channel_delay * 0.7)
+            time.sleep(self.channel_delay * 0.6)
             return True
         
         return False
@@ -829,7 +829,7 @@ class AdvancedCloner:
         
         if self._check_response(response, f"delete_role ({role_name})"):
             успех(f"Удалена роль: {role_name}")
-            time.sleep(self.role_delay * 0.7)
+            time.sleep(self.role_delay * 0.6)
             return True
         
         return False
@@ -945,14 +945,14 @@ class AdvancedCloner:
                 channel_name = channel.get('name', 'Без названия')
                 if self.delete_channel(channel['id'], channel_name):
                     deleted += 1
-                    if deleted % 5 == 0:
+                    if deleted % 6 == 0:
                         процесс(f"Прогресс: {GREEN}{deleted}{WHITE}/{YELLOW}{len(channels)}{WHITE} каналов")
                 else:
                     ошибка(f"Не удалось удалить канал: {channel_name}")
             
             успех(f"Удалено каналов: {GREEN}{deleted}{WHITE}/{YELLOW}{len(channels)}{WHITE}")
         
-        time.sleep(self.bulk_delay * 1.5)
+        time.sleep(self.bulk_delay * 1.3)
         print(f"{BLUE}│")
         
         if roles:
@@ -967,14 +967,14 @@ class AdvancedCloner:
                 role_name = role.get('name', 'Без названия')
                 if self.delete_role(target_id, role['id'], role_name):
                     deleted += 1
-                    if deleted % 3 == 0:
+                    if deleted % 4 == 0:
                         процесс(f"Прогресс: {GREEN}{deleted}{WHITE} ролей")
                 else:
                     ошибка(f"Не удалось удалить роль: {role_name}")
             
             успех(f"Удалено ролей: {GREEN}{deleted}{WHITE}")
         
-        time.sleep(self.bulk_delay * 2)
+        time.sleep(self.bulk_delay * 1.7)
         print(f"\n{BLUE}└{'─' * 63}┘")
         return True
 
@@ -1025,7 +1025,7 @@ class AdvancedCloner:
             else:
                 ошибка(f"Ошибка создания роли: {role_name}")
             
-            if i % 3 == 0 or i == len(sorted_roles):
+            if i % 4 == 0 or i == len(sorted_roles):
                 процесс(f"Прогресс: {GREEN}{i}{WHITE}/{YELLOW}{len(sorted_roles)}{WHITE} ролей")
         
         print(f"{BLUE}│")
@@ -1090,10 +1090,10 @@ class AdvancedCloner:
                 else:
                     ошибка(f"Ошибка создания категории: {category_name}")
                 
-                if i % 2 == 0 or i == len(sorted_categories):
+                if i % 3 == 0 or i == len(sorted_categories):
                     процесс(f"Прогресс категорий: {GREEN}{i}{WHITE}/{YELLOW}{len(sorted_categories)}{WHITE}")
         
-        time.sleep(self.bulk_delay)
+        time.sleep(self.bulk_delay * 0.8)
         print(f"{BLUE}│")
         
         if channels:
@@ -1128,7 +1128,7 @@ class AdvancedCloner:
                 else:
                     ошибка(f"Ошибка создания канала: {channel_name}")
                 
-                if i % 8 == 0 or i == len(sorted_channels):
+                if i % 10 == 0 or i == len(sorted_channels):
                     процесс(f"Прогресс каналов: {GREEN}{i}{WHITE}/{YELLOW}{len(sorted_channels)}{WHITE}")
             
             успех(f"Создано каналов: {GREEN}{created}{WHITE}/{YELLOW}{len(sorted_channels)}{WHITE}")
@@ -1147,7 +1147,7 @@ async def check_servers_async(token: str):
         'X-Super-Properties': 'eyJvcyI6IldpbmRvd3MiLCJicm93c2VyIjoiRGlzY29yZCBDbGllbnQiLCJyZWxlYXNlX2NoYW5uZWwiOiJzdGFibGUiLCJjbGllbnRfdmVyc2lvbiI6IjEuMC45MDE2Iiwib3NfdmVyc2lvbiI6IjEwLjAuMjI2MjEiLCJvc19hcmNoIjoieDY0Iiwic3lzdGVtX2xvY2FsZSI6ImVuLVVTIiwiY2xpZW50X2J1aWxkX251bWJlciI6MjQxODQ2LCJuYXRpdmVfYnVpbGRfbnVtYmVyIjozODA1OCwiY2xpZW50X2V2ZW50X3NvdXJjZSI6bnVsbH0='
     }
     
-    async with aiohttp.ClientSession(headers=headers, timeout=aiohttp.ClientTimeout(total=45)) as session:
+    async with aiohttp.ClientSession(headers=headers, timeout=aiohttp.ClientTimeout(total=35)) as session:
         try:
             clear_screen()
             заголовок("ПРОВЕРКА СЕРВЕРОВ")
@@ -1155,7 +1155,7 @@ async def check_servers_async(token: str):
             
             процесс("Проверяем токен...")
             
-            async with session.get('https://discord.com/api/v10/users/@me', timeout=45) as response:
+            async with session.get('https://discord.com/api/v10/users/@me', timeout=35) as response:
                 if response.status == 200:
                     user_data = await response.json()
                     username = user_data.get('username', 'N/A')
@@ -1168,7 +1168,7 @@ async def check_servers_async(token: str):
                     print(f"{BLUE}│")
                     процесс("Получаем список серверов...")
                     
-                    async with session.get('https://discord.com/api/v10/users/@me/guilds', timeout=45) as guilds_response:
+                    async with session.get('https://discord.com/api/v10/users/@me/guilds', timeout=35) as guilds_response:
                         if guilds_response.status == 200:
                             guilds_data = await guilds_response.read()
                             try:
@@ -1279,7 +1279,7 @@ def check_server_menu():
     
     if not DiscordValidator.validate_token(token):
         ошибка("Неверный формат токена")
-        информация("Токен должен быть длинной строкой (50+ символов)")
+        информация("Токен должен быть длинной строкой (59+ символов)")
         ввод_подсказка("Нажмите Enter для продолжения")
         check_server_menu()
         return
