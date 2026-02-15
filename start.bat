@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title Discord Server Cloner V5.1.0
+title Discord Server Cloner V6.0.0
 color 0B
 
 echo ═════════════════════════════════════════════════════════════
-echo                     Discord Server Cloner V5.1.0
-echo                      Автор: qtiq0 (zlafik)
+echo                     Discord Server Cloner V6.0.0
+echo                      Автор: xolirx
 echo ═════════════════════════════════════════════════════════════
 echo.
 
@@ -38,7 +38,7 @@ if errorlevel 1 (
 echo [+] Все зависимости установлены
 echo [*] Версия: 5.1.0
 echo [*] Автор: qtiq0
-echo [*] Поддержка: Telegram @qtiq0
+echo [*] Поддержка: Telegram @xolirx
 echo.
 echo [*] Запуск программы...
 timeout /t 2 /nobreak >nul
