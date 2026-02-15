@@ -1,4 +1,4 @@
-# Discord Server Cloner v5.0.0
+# Discord Server Cloner v6.0.0
 
 <p align="center">
   <img src="https://img.shields.io/badge/Версия-5.0.0-blue" alt="Version">
@@ -160,3 +160,4 @@ discord-cloner/
   <sub>Используйте ответственно!</sub>
 </p>
 ```
+
