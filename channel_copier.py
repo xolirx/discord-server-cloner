@@ -1,18 +1,16 @@
 import sys
 import os
-import urllib.request
-import urllib.error
 import json
-import ssl
 import time
-import base64
-import aiohttp
 import asyncio
+import aiohttp
+import ssl
 import re
 import traceback
-import zlib
-import gzip
 from typing import Optional, Dict, List, Any, Tuple
+from dataclasses import dataclass
+from enum import IntEnum
+from functools import lru_cache
 
 if sys.platform == "win32":
     try:
@@ -22,8 +20,6 @@ if sys.platform == "win32":
         kernel32.SetConsoleCP(65001)
     except:
         pass
-
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from colorama import Fore, Style, init
@@ -35,940 +31,731 @@ try:
     RED = Fore.RED
     YELLOW = Fore.YELLOW
     MAGENTA = Fore.MAGENTA
+    RESET = Style.RESET_ALL
 except ImportError:
-    BLUE = CYAN = WHITE = GREEN = RED = YELLOW = MAGENTA = ""
+    BLUE = CYAN = WHITE = GREEN = RED = YELLOW = MAGENTA = RESET = ""
 
-VERSION = "6.0.0"
+VERSION = "6.2.0"
 AUTHOR = "xolirx"
 TELEGRAM = "@xolirx"
 SUPPORT_CHANNEL = "https://t.me/xolirxx"
 
-def clear_screen():
-    os.system('cls' if os.name == 'nt' else 'clear')
+class ChannelType(IntEnum):
+    GUILD_TEXT = 0
+    GUILD_VOICE = 2
+    GUILD_CATEGORY = 4
+    GUILD_ANNOUNCEMENT = 5
+    GUILD_STAGE_VOICE = 13
+    GUILD_FORUM = 15
 
-def разделитель(ширина=65):
-    return BLUE + "─" * ширина
+    @classmethod
+    def is_valid(cls, value: int) -> bool:
+        return value in [0, 2, 4, 5, 13, 15]
 
-def заголовок(текст):
-    print(f"\n{BLUE}┌{'─' * 63}┐")
-    print(f"{BLUE}│ {CYAN}{текст:^61} {BLUE}│")
-    print(f"{BLUE}└{'─' * 63}┘")
+@dataclass
+class RateLimitInfo:
+    retry_after: float = 0
+    reset_after: float = 0
+    limit: int = 0
+    remaining: int = 0
 
-def подзаголовок(текст):
-    print(f"\n{BLUE}├{'─' * 63}┤")
-    print(f"{BLUE}│ {CYAN}{текст:^61} {BLUE}│")
-    print(f"{BLUE}├{'─' * 63}┤")
+class ConsoleUI:
+    WIDTH = 65
+    
+    @staticmethod
+    def clear():
+        os.system('cls' if os.name == 'nt' else 'clear')
+    
+    @staticmethod
+    def separator():
+        return BLUE + "─" * ConsoleUI.WIDTH
+    
+    @staticmethod
+    def header(text: str):
+        print(f"\n{BLUE}┌{'─' * (ConsoleUI.WIDTH - 2)}┐")
+        print(f"{BLUE}│ {CYAN}{text:^{ConsoleUI.WIDTH - 4}} {BLUE}│")
+        print(f"{BLUE}└{'─' * (ConsoleUI.WIDTH - 2)}┘")
+    
+    @staticmethod
+    def title(text: str):
+        print(f"\n{BLUE}├{'─' * (ConsoleUI.WIDTH - 2)}┤")
+        print(f"{BLUE}│ {CYAN}{text:^{ConsoleUI.WIDTH - 4}} {BLUE}│")
+        print(f"{BLUE}├{'─' * (ConsoleUI.WIDTH - 2)}┤")
+    
+    @staticmethod
+    def info(text: str):
+        print(f"{CYAN}│ {WHITE}{text}")
+    
+    @staticmethod
+    def success(text: str):
+        print(f"{CYAN}│ {GREEN}[+] {WHITE}{text}")
+    
+    @staticmethod
+    def warning(text: str):
+        print(f"{CYAN}│ {YELLOW}[!] {WHITE}{text}")
+    
+    @staticmethod
+    def error(text: str):
+        print(f"{CYAN}│ {RED}[-] {WHITE}{text}")
+    
+    @staticmethod
+    def progress(text: str):
+        print(f"{CYAN}│ {BLUE}[*] {WHITE}{text}")
+    
+    @staticmethod
+    def input_prompt(text: str) -> str:
+        print(f"{CYAN}│ {MAGENTA}[?] {WHITE}{text}")
+        print(f"{CYAN}│ {MAGENTA}  → {WHITE}", end="")
+        return input()
+    
+    @staticmethod
+    def input_field(text: str) -> str:
+        print(f"{CYAN}│ {BLUE}[>] {WHITE}{text}:")
+        print(f"{CYAN}│ {BLUE}  → {WHITE}", end="")
+        return input()
+    
+    @staticmethod
+    def banner():
+        ConsoleUI.clear()
+        print(f"{BLUE}╔{'═' * (ConsoleUI.WIDTH - 2)}╗")
+        print(f"{BLUE}║ {CYAN}{'DISCORD SERVER CLONER':^{ConsoleUI.WIDTH - 4}} {BLUE}║")
+        print(f"{BLUE}║ {CYAN}{f'ВЕРСИЯ {VERSION}':^{ConsoleUI.WIDTH - 4}} {BLUE}║")
+        print(f"{BLUE}╠{'═' * (ConsoleUI.WIDTH - 2)}╣")
+        print(f"{BLUE}║ {WHITE}Автор: {CYAN}{AUTHOR}{' ' * (ConsoleUI.WIDTH - 14 - len(AUTHOR))} {BLUE}║")
+        print(f"{BLUE}║ {WHITE}Telegram: {CYAN}{TELEGRAM}{' ' * (ConsoleUI.WIDTH - 17 - len(TELEGRAM))} {BLUE}║")
+        print(f"{BLUE}║ {WHITE}Канал: {CYAN}{SUPPORT_CHANNEL}{' ' * (ConsoleUI.WIDTH - 15 - len(SUPPORT_CHANNEL))} {BLUE}║")
+        print(f"{BLUE}╚{'═' * (ConsoleUI.WIDTH - 2)}╝")
+    
+    @staticmethod
+    def agreement():
+        ConsoleUI.clear()
+        print(f"{BLUE}╔{'═' * (ConsoleUI.WIDTH - 2)}╗")
+        print(f"{BLUE}║ {RED}{'ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ':^{ConsoleUI.WIDTH - 4}} {BLUE}║")
+        print(f"{BLUE}╠{'═' * (ConsoleUI.WIDTH - 2)}╣")
+        print(f"{BLUE}║ {WHITE}1. Вы несете ответственность за использование{':^{}} {BLUE}║")
+        print(f"{BLUE}║ {WHITE}2. Используйте только на серверах с разрешением{':^{}} {BLUE}║")
+        print(f"{BLUE}║ {WHITE}3. Автор не несет ответственности за ваши действия{':^{}} {BLUE}║")
+        print(f"{BLUE}║ {WHITE}4. Запрещено нарушение правил Discord{':^{}} {BLUE}║")
+        print(f"{BLUE}╚{'═' * (ConsoleUI.WIDTH - 2)}╝")
 
-def информация(текст):
-    print(f"{CYAN}│ {WHITE}{текст}")
+ui = ConsoleUI()
 
-def успех(текст):
-    print(f"{CYAN}│ {GREEN}[+] {WHITE}{текст}")
-
-def предупреждение(текст):
-    print(f"{CYAN}│ {YELLOW}[!] {WHITE}{текст}")
-
-def ошибка(текст):
-    print(f"{CYAN}│ {RED}[-] {WHITE}{текст}")
-
-def процесс(текст):
-    print(f"{CYAN}│ {BLUE}[*] {WHITE}{текст}")
-
-def ввод_подсказка(текст):
-    print(f"{CYAN}│ {MAGENTA}[?] {WHITE}{текст}")
-    print(f"{CYAN}│ {MAGENTA}  → {WHITE}", end="")
-    return input()
-
-def ввод_поле(текст):
-    print(f"{CYAN}│ {BLUE}[>] {WHITE}{текст}:")
-    print(f"{CYAN}│ {BLUE}  → {WHITE}", end="")
-    return input()
-
-def печать_баннера():
-    clear_screen()
-    print(f"{BLUE}╔{'═' * 63}╗")
-    print(f"{BLUE}║ {CYAN}{'DISCORD SERVER CLONER':^61} {BLUE}║")
-    print(f"{BLUE}║ {CYAN}{f'ВЕРСИЯ {VERSION}':^61} {BLUE}║")
-    print(f"{BLUE}╠{'═' * 63}╣")
-    print(f"{BLUE}║ {WHITE}Автор: {CYAN}{AUTHOR}{'':^51} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}Telegram: {CYAN}{TELEGRAM}{'':^48} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}Канал: {CYAN}{SUPPORT_CHANNEL}{'':^45} {BLUE}║")
-    print(f"{BLUE}╠{'─' * 63}╣")
-    print(f"{BLUE}║ {CYAN}Возможности программы:{'':^38} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}• Полное клонирование структуры сервера{'':^22} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}• Сохранение ролей, каналов и категорий{'':^23} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}• Улучшенная обработка ошибок{'':^31} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}• Оптимизированные задержки запросов{'':^26} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}• Поддержка последних версий Discord API{'':^20} {BLUE}║")
-    print(f"{BLUE}╚{'═' * 63}╝")
-
-def печать_соглашения():
-    clear_screen()
-    print(f"{BLUE}╔{'═' * 63}╗")
-    print(f"{BLUE}║ {CYAN}{'ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ':^61} {BLUE}║")
-    print(f"{BLUE}╠{'─' * 63}╣")
-    print(f"{BLUE}║ {CYAN}ВНИМАТЕЛЬНО ПРОЧИТАЙТЕ ПЕРЕД ИСПОЛЬЗОВАНИЕМ:{'':^20} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}1. Вы несете ответственность за использование программы{'':^8} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}2. Используйте только на серверах, где имеете разрешение{'':^6} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}3. Автор не несет ответственности за ваши действия{'':^11} {BLUE}║")
-    print(f"{BLUE}║ {WHITE}4. Запрещено использование для нарушения правил Discord{'':^5} {BLUE}║")
-    print(f"{BLUE}╠{'─' * 63}╣")
-    print(f"{BLUE}║ {CYAN}При обнаружении ошибок пишите в Telegram автора:{'':^8} {BLUE}║")
-    print(f"{BLUE}║ {CYAN}{TELEGRAM} | {SUPPORT_CHANNEL}{'':^40} {BLUE}║")
-    print(f"{BLUE}╚{'═' * 63}╝")
-
-def подтвердить_соглашение():
-    печать_соглашения()
-    подтверждение = ввод_подсказка("Для подтверждения введите: 'ПОДТВЕРДИТЬ'")
-    return подтверждение.strip().upper() == "ПОДТВЕРДИТЬ"
-
-class SafeSSLContext:
-    def __init__(self):
-        self.ctx = ssl.create_default_context()
-        self.ctx.check_hostname = False
-        self.ctx.verify_mode = ssl.CERT_NONE
-
-    def get_context(self):
-        return self.ctx
-
-class DiscordValidator:
+class Validator:
+    TOKEN_PATTERNS = [
+        r'^[A-Za-z0-9\.\-_]{59}\.[A-Za-z0-9\.\-_]{6}\.[A-Za-z0-9\.\-_]{27}$',
+        r'^[A-Za-z0-9\.\-_]{24}\.[A-Za-z0-9\.\-_]{6}\.[A-Za-z0-9\.\-_]{27}$',
+        r'^mfa\.[A-Za-z0-9\.\-_]{84}$',
+        r'^[A-Za-z0-9\.\-_]{70,}$'
+    ]
+    
     @staticmethod
     def validate_token(token: str) -> bool:
         if not token or not isinstance(token, str):
             return False
-        token = token.strip()
+        token = token.strip().strip('"\' ')
         if len(token) < 59:
             return False
-        patterns = [
-            r'^[A-Za-z0-9\.\-_]{59}\.[A-Za-z0-9\.\-_]{6}\.[A-Za-z0-9\.\-_]{27}$',
-            r'^[A-Za-z0-9\.\-_]{24}\.[A-Za-z0-9\.\-_]{6}\.[A-Za-z0-9\.\-_]{27}$',
-            r'^mfa\.[A-Za-z0-9\.\-_]{84}$',
-            r'^[A-Za-z0-9\.\-_]{70,}$'
-        ]
-        return any(re.match(pattern, token) for pattern in patterns)
-
+        return any(re.match(pattern, token) for pattern in Validator.TOKEN_PATTERNS)
+    
     @staticmethod
     def validate_snowflake(snowflake: str) -> bool:
         if not snowflake or not isinstance(snowflake, str):
             return False
         snowflake = snowflake.strip()
-        if not snowflake.isdigit():
-            return False
-        if len(snowflake) < 17 or len(snowflake) > 20:
-            return False
-        try:
-            return int(snowflake) > 10000000000000000
-        except:
-            return False
-
+        return snowflake.isdigit() and 17 <= len(snowflake) <= 20
+    
     @staticmethod
-    def clean_channel_name(name: str) -> str:
+    def clean_name(name: str, max_len: int = 100) -> str:
         if not name or not isinstance(name, str):
             return "канал"
-        cleaned = ''.join(char for char in name if char.isprintable() or char in ' ')
+        cleaned = ''.join(c for c in name if c.isprintable() or c == ' ')
         cleaned = ' '.join(cleaned.split())
-        if len(cleaned) > 100:
-            cleaned = cleaned[:97] + "..."
-        cleaned = cleaned.replace('```', '`\u200b`\u200b`')
-        return cleaned if cleaned and not cleaned.isspace() else "канал"
+        if len(cleaned) > max_len:
+            cleaned = cleaned[:max_len-3] + "..."
+        return cleaned or "канал"
 
-    @staticmethod
-    def clean_role_name(name: str) -> str:
-        cleaned = DiscordValidator.clean_channel_name(name)
-        return "Новая роль" if cleaned == "канал" else cleaned
-
-    @staticmethod
-    def sanitize_permissions(perms: Any) -> str:
-        try:
-            if isinstance(perms, str):
-                perms_int = int(perms)
-            elif isinstance(perms, int):
-                perms_int = perms
-            else:
-                perms_int = 1024
-            perms_int = perms_int & 0x7FFFFFFFFFFFFFFF
-            return str(max(perms_int, 1024))
-        except:
-            return "1024"
+class RateLimiter:
+    def __init__(self):
+        self.requests_per_minute = 0
+        self.last_request_time = 0
+        self.delays = {
+            'default': 1.0,
+            'channel': 1.5,
+            'role': 2.0,
+            'bulk': 3.0
+        }
+    
+    def wait(self, operation: str = 'default'):
+        delay = self.delays.get(operation, self.delays['default'])
+        time.sleep(delay)
+    
+    def update_from_headers(self, headers: Dict):
+        if 'X-RateLimit-Remaining' in headers:
+            remaining = int(headers.get('X-RateLimit-Remaining', 0))
+            if remaining == 0:
+                self.delays['default'] *= 1.5
 
 class RequestManager:
-    def __init__(self, headers: Dict[str, str]):
-        self.headers = headers.copy()
-        self.ssl_context = SafeSSLContext()
-        self.max_retries = 5
-        self.base_delay = 1.5
-        self.timeout = 60
-        self.request_count = 0
-        self.headers.update({
-            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (DiscordCloner/{VERSION})',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Connection': 'keep-alive',
-        })
-
-    def _calculate_delay(self, attempt: int) -> float:
-        return self.base_delay + (attempt * 1.0)
-
-    def _handle_rate_limit(self, headers: Dict) -> float:
-        retry_after = headers.get('Retry-After')
-        if retry_after:
-            try:
-                return float(retry_after) + 1.5
-            except:
-                pass
-        reset_after = headers.get('X-RateLimit-Reset-After')
-        if reset_after:
-            try:
-                return float(reset_after) + 1.5
-            except:
-                pass
-        return 3.0
-
-    def _prepare_data(self, data: Any) -> Optional[bytes]:
-        if data is None:
-            return None
-        try:
-            if isinstance(data, (dict, list)):
-                return json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
-            elif isinstance(data, str):
-                return data.encode('utf-8')
-            elif isinstance(data, bytes):
-                return data
-            else:
-                return str(data).encode('utf-8')
-        except Exception:
-            return None
-
-    def _decode_response_data(self, response_data: bytes, content_encoding: str = None) -> Any:
-        if not response_data:
-            return None
-        try:
-            decoded_data = response_data
-            if content_encoding == 'gzip':
-                decoded_data = gzip.decompress(response_data)
-            elif content_encoding == 'deflate':
-                decoded_data = zlib.decompress(response_data, -zlib.MAX_WBITS)
-            text = decoded_data.decode('utf-8', errors='ignore')
-            if not text.strip():
-                return None
-            return json.loads(text)
-        except:
-            return None
-
-    def request(self, method: str, url: str, data: Any = None) -> Tuple[Optional[Any], Optional[Any]]:
-        self.request_count += 1
-        headers = self.headers.copy()
-        if data is not None:
-            headers['Content-Type'] = 'application/json'
-        for attempt in range(self.max_retries):
-            try:
-                текущая_задержка = self._calculate_delay(attempt)
-                if attempt > 0:
-                    time.sleep(текущая_задержка)
-                encoded_data = self._prepare_data(data)
-                req = urllib.request.Request(url, data=encoded_data, headers=headers, method=method.upper())
-                with urllib.request.urlopen(req, context=self.ssl_context.get_context(), timeout=self.timeout) as response:
-                    статус = response.status
-                    response_data = response.read()
-                    content_encoding = response.headers.get('Content-Encoding')
-                    json_data = self._decode_response_data(response_data, content_encoding)
-                    if статус == 429:
-                        задержка = self._handle_rate_limit(response.headers)
-                        time.sleep(задержка)
-                        continue
-                    if 200 <= статус < 300:
-                        return response, json_data
-                    if attempt < self.max_retries - 1:
-                        time.sleep(self._calculate_delay(attempt))
-                        continue
-                    return response, json_data
-            except urllib.error.HTTPError as e:
-                статус = e.code
-                if статус == 429:
-                    задержка = self._handle_rate_limit(e.headers)
-                    time.sleep(задержка)
-                    continue
-                if статус == 401:
-                    return None, {"error": "Unauthorized"}
-                if статус == 403:
-                    return None, {"error": "Forbidden"}
-                if статус == 404:
-                    return None, {"error": "Not Found"}
-                if attempt < self.max_retries - 1:
-                    time.sleep(self._calculate_delay(attempt))
-                    continue
-                return e, None
-            except (urllib.error.URLError, ssl.SSLError, TimeoutError):
-                if attempt < self.max_retries - 1:
-                    time.sleep(self._calculate_delay(attempt))
-                    continue
-                return None, None
-            except Exception:
-                if attempt < self.max_retries - 1:
-                    time.sleep(self._calculate_delay(attempt))
-                    continue
-                return None, None
-        return None, None
-
-    def get(self, url: str) -> Tuple[Optional[Any], Optional[Any]]:
-        return self.request('GET', url)
-
-    def post(self, url: str, data: Any = None) -> Tuple[Optional[Any], Optional[Any]]:
-        return self.request('POST', url, data)
-
-    def delete(self, url: str) -> Tuple[Optional[Any], Optional[Any]]:
-        return self.request('DELETE', url)
-
-    def patch(self, url: str, data: Any = None) -> Tuple[Optional[Any], Optional[Any]]:
-        return self.request('PATCH', url, data)
-
-class AdvancedCloner:
     def __init__(self, token: str):
-        if not DiscordValidator.validate_token(token):
-            raise ValueError("Неверный формат токена Discord")
-        self.token = token
-        self.validator = DiscordValidator()
-        self.headers = {
-            'Authorization': token,
-            'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (DiscordCloner/{VERSION})',
+        self.token = token.strip().strip('"\' ')
+        self.session: Optional[aiohttp.ClientSession] = None
+        self.rate_limiter = RateLimiter()
+        self.base_url = "https://discord.com/api/v10"
+        self.timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        self.retry_count = 3
+        
+    async def __aenter__(self):
+        headers = {
+            'Authorization': self.token,
+            'User-Agent': f'DiscordCloner/{VERSION}',
             'Accept': 'application/json',
-            'Accept-Language': 'en-US,en;q=0.9',
+            'Content-Type': 'application/json'
         }
-        self.request_manager = RequestManager(self.headers)
-        self.channel_delay = 1.5
-        self.role_delay = 2.0
-        self.bulk_delay = 3.0
+        self.session = aiohttp.ClientSession(headers=headers, timeout=self.timeout)
+        return self
+    
+    async def __aexit__(self, *args):
+        if self.session:
+            await self.session.close()
+    
+    async def _request(self, method: str, endpoint: str, **kwargs) -> Tuple[Optional[Dict], int]:
+        url = f"{self.base_url}{endpoint}"
+        for attempt in range(self.retry_count):
+            try:
+                async with self.session.request(method, url, **kwargs) as response:
+                    self.rate_limiter.update_from_headers(response.headers)
+                    
+                    if response.status == 429:
+                        retry_after = float(response.headers.get('Retry-After', 2))
+                        await asyncio.sleep(retry_after)
+                        continue
+                    
+                    if response.status in [200, 201, 204]:
+                        if response.status == 204:
+                            return None, response.status
+                        return await response.json(), response.status
+                    
+                    if response.status >= 500 and attempt < self.retry_count - 1:
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+                    
+                    error_text = await response.text()
+                    return {'error': error_text}, response.status
+                    
+            except asyncio.TimeoutError:
+                if attempt == self.retry_count - 1:
+                    return {'error': 'Timeout'}, 408
+                await asyncio.sleep(1)
+            except aiohttp.ClientError as e:
+                if attempt == self.retry_count - 1:
+                    return {'error': str(e)}, 500
+                await asyncio.sleep(1)
+        
+        return {'error': 'Max retries exceeded'}, 500
+    
+    async def get(self, endpoint: str) -> Tuple[Optional[Dict], int]:
+        return await self._request('GET', endpoint)
+    
+    async def post(self, endpoint: str, data: Dict) -> Tuple[Optional[Dict], int]:
+        return await self._request('POST', endpoint, json=data)
+    
+    async def delete(self, endpoint: str) -> Tuple[Optional[Dict], int]:
+        return await self._request('DELETE', endpoint)
+    
+    async def patch(self, endpoint: str, data: Dict) -> Tuple[Optional[Dict], int]:
+        return await self._request('PATCH', endpoint, json=data)
 
-    def _check_response(self, response, operation: str = "") -> bool:
-        if response is None:
-            return False
-        if hasattr(response, 'status'):
-            return 200 <= response.status < 300
-        return False
-
-    def get_server_info(self, server_id: str) -> Optional[Dict]:
-        if not self.validator.validate_snowflake(server_id):
-            return None
-        url = f'https://discord.com/api/v10/guilds/{server_id}'
-        response, data = self.request_manager.get(url)
-        if response and self._check_response(response):
-            return data if isinstance(data, dict) else None
+class Cache:
+    def __init__(self, ttl: int = 300):
+        self._cache = {}
+        self._ttl = ttl
+    
+    def get(self, key: str) -> Optional[Any]:
+        if key in self._cache:
+            data, timestamp = self._cache[key]
+            if time.time() - timestamp < self._ttl:
+                return data
+            del self._cache[key]
         return None
+    
+    def set(self, key: str, value: Any):
+        self._cache[key] = (value, time.time())
+    
+    def clear(self):
+        self._cache.clear()
 
-    def get_servers(self) -> List[Dict]:
-        url = 'https://discord.com/api/v10/users/@me/guilds'
-        response, data = self.request_manager.get(url)
-        if response and self._check_response(response):
-            return data if isinstance(data, list) else []
+class DiscordCloner:
+    def __init__(self, token: str):
+        self.token = token
+        self.cache = Cache(ttl=60)
+        self.stats = {
+            'channels_created': 0,
+            'roles_created': 0,
+            'channels_deleted': 0,
+            'roles_deleted': 0,
+            'api_calls': 0
+        }
+    
+    async def get_current_user(self, rm: RequestManager) -> Optional[Dict]:
+        data, status = await rm.get('/users/@me')
+        self.stats['api_calls'] += 1
+        return data if status == 200 else None
+    
+    async def get_user_guilds(self, rm: RequestManager) -> List[Dict]:
+        cache_key = 'user_guilds'
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
+        
+        data, status = await rm.get('/users/@me/guilds')
+        self.stats['api_calls'] += 1
+        
+        if status == 200 and isinstance(data, list):
+            self.cache.set(cache_key, data)
+            return data
         return []
-
-    def get_channels(self, server_id: str) -> List[Dict]:
-        if not self.validator.validate_snowflake(server_id):
-            return []
-        url = f'https://discord.com/api/v10/guilds/{server_id}/channels'
-        response, data = self.request_manager.get(url)
-        if self._check_response(response):
-            return data if isinstance(data, list) else []
+    
+    async def get_guild_info(self, rm: RequestManager, guild_id: str) -> Optional[Dict]:
+        cache_key = f'guild_{guild_id}'
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
+        
+        data, status = await rm.get(f'/guilds/{guild_id}')
+        self.stats['api_calls'] += 1
+        
+        if status == 200:
+            self.cache.set(cache_key, data)
+            return data
+        return None
+    
+    async def get_guild_channels(self, rm: RequestManager, guild_id: str) -> List[Dict]:
+        cache_key = f'channels_{guild_id}'
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
+        
+        data, status = await rm.get(f'/guilds/{guild_id}/channels')
+        self.stats['api_calls'] += 1
+        
+        if status == 200 and isinstance(data, list):
+            self.cache.set(cache_key, data)
+            return data
         return []
-
-    def get_roles(self, server_id: str) -> List[Dict]:
-        if not self.validator.validate_snowflake(server_id):
-            return []
-        url = f'https://discord.com/api/v10/guilds/{server_id}/roles'
-        response, data = self.request_manager.get(url)
-        if self._check_response(response):
-            return data if isinstance(data, list) else []
+    
+    async def get_guild_roles(self, rm: RequestManager, guild_id: str) -> List[Dict]:
+        cache_key = f'roles_{guild_id}'
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
+        
+        data, status = await rm.get(f'/guilds/{guild_id}/roles')
+        self.stats['api_calls'] += 1
+        
+        if status == 200 and isinstance(data, list):
+            self.cache.set(cache_key, data)
+            return data
         return []
-
-    def get_server_icon(self, server_id: str) -> Optional[str]:
-        try:
-            server_info = self.get_server_info(server_id)
-            if not server_info or not server_info.get('icon'):
-                return None
-            icon_hash = server_info['icon']
-            for size in [512, 256, 128]:
-                try:
-                    icon_url = f"https://cdn.discordapp.com/icons/{server_id}/{icon_hash}.png?size={size}"
-                    req = urllib.request.Request(icon_url, headers={'User-Agent': self.headers['User-Agent']})
-                    with urllib.request.urlopen(req, timeout=30) as response:
-                        if response.status == 200:
-                            icon_data = response.read()
-                            return base64.b64encode(icon_data).decode('utf-8')
-                except:
-                    continue
-            return None
-        except:
-            return None
-
-    def delete_channel(self, channel_id: str, channel_name: str = "Неизвестно") -> bool:
-        if not self.validator.validate_snowflake(channel_id):
-            return False
-        url = f'https://discord.com/api/v10/channels/{channel_id}'
-        response, _ = self.request_manager.delete(url)
-        if self._check_response(response):
-            time.sleep(self.channel_delay * 0.5)
+    
+    async def delete_channel(self, rm: RequestManager, channel_id: str) -> bool:
+        data, status = await rm.delete(f'/channels/{channel_id}')
+        self.stats['api_calls'] += 1
+        
+        if status in [200, 204]:
+            self.stats['channels_deleted'] += 1
+            rm.rate_limiter.wait('channel')
             return True
         return False
-
-    def create_channel(self, server_id: str, channel_data: Dict) -> Tuple[bool, Optional[Dict]]:
-        if not self.validator.validate_snowflake(server_id):
-            return False, None
-        sanitized_data = self._sanitize_channel_data(channel_data)
-        if not sanitized_data:
-            return False, None
-        url = f'https://discord.com/api/v10/guilds/{server_id}/channels'
-        response, data = self.request_manager.post(url, sanitized_data)
-        if self._check_response(response):
-            time.sleep(self.channel_delay)
-            return True, data if isinstance(data, dict) else None
-        return False, None
-
-    def _sanitize_channel_data(self, channel_data: Dict) -> Optional[Dict]:
-        if not isinstance(channel_data, dict):
-            return None
-        sanitized = channel_data.copy()
-        if 'name' not in sanitized:
-            sanitized['name'] = "канал"
-        if 'type' not in sanitized:
-            sanitized['type'] = 0
-        sanitized['name'] = self.validator.clean_channel_name(sanitized['name'])
-        valid_types = [0, 2, 4, 5, 13, 15]
-        if sanitized['type'] not in valid_types:
-            sanitized['type'] = 0
-        if 'parent_id' in sanitized:
-            parent_id = sanitized['parent_id']
-            if parent_id and not self.validator.validate_snowflake(str(parent_id)):
-                del sanitized['parent_id']
-        if 'position' in sanitized:
-            try:
-                sanitized['position'] = max(0, int(sanitized['position']))
-            except:
-                sanitized['position'] = 0
-        if 'rate_limit_per_user' in sanitized:
-            try:
-                limit = int(sanitized['rate_limit_per_user'])
-                sanitized['rate_limit_per_user'] = max(0, min(21600, limit))
-            except:
-                del sanitized['rate_limit_per_user']
-        return sanitized
-
-    def create_role(self, server_id: str, role_data: Dict) -> Tuple[bool, Optional[Dict]]:
-        if not self.validator.validate_snowflake(server_id):
-            return False, None
-        sanitized_data = self._sanitize_role_data(role_data)
-        if not sanitized_data:
-            return False, None
-        url = f'https://discord.com/api/v10/guilds/{server_id}/roles'
-        response, data = self.request_manager.post(url, sanitized_data)
-        if self._check_response(response):
-            time.sleep(self.role_delay)
-            return True, data if isinstance(data, dict) else None
-        return False, None
-
-    def _sanitize_role_data(self, role_data: Dict) -> Optional[Dict]:
-        if not isinstance(role_data, dict):
-            return None
-        sanitized = role_data.copy()
-        if 'name' not in sanitized:
-            sanitized['name'] = "Новая роль"
-        sanitized['name'] = self.validator.clean_role_name(sanitized['name'])
-        if 'color' not in sanitized:
-            sanitized['color'] = 0
-        else:
-            try:
-                color = int(sanitized['color'])
-                sanitized['color'] = max(0, min(0xFFFFFF, color))
-            except:
-                sanitized['color'] = 0
-        sanitized['permissions'] = self.validator.sanitize_permissions(sanitized.get('permissions', '0'))
-        for field in ['hoist', 'mentionable']:
-            if field in sanitized:
-                sanitized[field] = bool(sanitized[field])
-            else:
-                sanitized[field] = False
-        return sanitized
-
-    def update_role_positions(self, server_id: str, position_data: List[Dict]) -> bool:
-        if not self.validator.validate_snowflake(server_id):
-            return False
-        if not isinstance(position_data, list) or not position_data:
-            return True
-        validated = []
-        for item in position_data:
-            if not isinstance(item, dict):
-                continue
-            if 'id' not in item or 'position' not in item:
-                continue
-            if not self.validator.validate_snowflake(str(item['id'])):
-                continue
-            try:
-                position = int(item['position'])
-                if position < 0:
-                    continue
-            except:
-                continue
-            validated.append({'id': str(item['id']), 'position': position})
-        if not validated:
-            return True
-        url = f'https://discord.com/api/v10/guilds/{server_id}/roles'
-        response, _ = self.request_manager.patch(url, validated)
-        if self._check_response(response):
-            time.sleep(self.bulk_delay)
+    
+    async def create_channel(self, rm: RequestManager, guild_id: str, channel_data: Dict) -> Optional[Dict]:
+        clean_data = {
+            'name': Validator.clean_name(channel_data.get('name', 'канал')),
+            'type': channel_data.get('type', ChannelType.GUILD_TEXT)
+        }
+        
+        if 'parent_id' in channel_data and channel_data['parent_id']:
+            clean_data['parent_id'] = channel_data['parent_id']
+        
+        if 'position' in channel_data:
+            clean_data['position'] = max(0, int(channel_data['position']))
+        
+        data, status = await rm.post(f'/guilds/{guild_id}/channels', clean_data)
+        self.stats['api_calls'] += 1
+        
+        if status == 201:
+            self.stats['channels_created'] += 1
+            rm.rate_limiter.wait('channel')
+            return data
+        return None
+    
+    async def delete_role(self, rm: RequestManager, guild_id: str, role_id: str) -> bool:
+        data, status = await rm.delete(f'/guilds/{guild_id}/roles/{role_id}')
+        self.stats['api_calls'] += 1
+        
+        if status in [200, 204]:
+            self.stats['roles_deleted'] += 1
+            rm.rate_limiter.wait('role')
             return True
         return False
-
-    def update_server_info(self, server_id: str, server_data: Dict) -> bool:
-        if not self.validator.validate_snowflake(server_id):
-            return False
-        url = f'https://discord.com/api/v10/guilds/{server_id}'
-        response, _ = self.request_manager.patch(url, server_data)
-        return self._check_response(response)
-
-    def delete_role(self, server_id: str, role_id: str, role_name: str = "Неизвестно") -> bool:
-        if not self.validator.validate_snowflake(server_id) or not self.validator.validate_snowflake(role_id):
-            return False
-        url = f'https://discord.com/api/v10/guilds/{server_id}/roles/{role_id}'
-        response, _ = self.request_manager.delete(url)
-        if self._check_response(response):
-            time.sleep(self.role_delay * 0.5)
-            return True
-        return False
-
-    def clone_server(self, source_id: str, target_id: str) -> bool:
-        try:
-            clear_screen()
-            заголовок("ЗАПУСК КЛОНИРОВАНИЯ")
-            процесс("Получаем информацию о серверах...")
-            source_info = self.get_server_info(source_id)
-            if not source_info:
-                ошибка("Не удалось получить информацию об исходном сервере")
-                return False
-            target_info = self.get_server_info(target_id)
-            if not target_info:
-                ошибка("Не удалось получить информацию о целевом сервере")
-                return False
-            source_name = source_info.get('name', 'Неизвестный сервер')
-            target_name = target_info.get('name', 'Неизвестный сервер')
-            успех(f"Исходный сервер: {source_name}")
-            успех(f"Целевой сервер: {target_name}")
-            процесс("Копируем название сервера...")
-            name_data = {'name': source_name}
-            if self.update_server_info(target_id, name_data):
-                успех(f"Название скопировано: {source_name}")
-            else:
-                предупреждение("Не удалось скопировать название")
-            процесс("Копируем иконку сервера...")
-            icon_b64 = self.get_server_icon(source_id)
-            if icon_b64:
-                try:
-                    icon_data = {'icon': f"data:image/png;base64,{icon_b64}"}
-                    if self.update_server_info(target_id, icon_data):
-                        успех("Иконка сервера скопирована")
-                    else:
-                        предупреждение("Не удалось скопировать иконку")
-                except:
-                    предупреждение("Ошибка при обработке иконки")
-            else:
-                информация("У сервера нет иконки или не удалось ее загрузить")
-            процесс("Анализируем структуры серверов...")
-            source_channels = self.get_channels(source_id)
-            target_channels = self.get_channels(target_id)
-            source_roles = self.get_roles(source_id)
-            target_roles = self.get_roles(target_id)
-            успех(f"Исходный сервер: {len(source_channels)} каналов, {len(source_roles)} ролей")
-            предупреждение(f"Целевой сервер: {len(target_channels)} каналов, {len(target_roles)} ролей")
-            if not self._clean_target_server(target_id, target_channels, target_roles):
-                ошибка("Не удалось очистить целевой сервер")
-                return False
-            if not self._clone_roles(source_roles, target_id):
-                ошибка("Не удалось клонировать роли")
-                return False
-            if not self._clone_channels(source_channels, target_id):
-                ошибка("Не удалось клонировать каналы")
-                return False
-            clear_screen()
-            заголовок("КЛОНИРОВАНИЕ ЗАВЕРШЕНО")
-            успех(f"Сервер '{source_name}' успешно клонирован в '{target_name}'")
-            успех("Перезайдите на сервер, чтобы увидеть все изменения")
-            return True
-        except Exception as e:
-            ошибка(f"Критическая ошибка при клонировании: {e}")
-            return False
-
-    def _clean_target_server(self, target_id: str, channels: List[Dict], roles: List[Dict]) -> bool:
-        подзаголовок("ОЧИСТКА ЦЕЛЕВОГО СЕРВЕРА")
+    
+    async def create_role(self, rm: RequestManager, guild_id: str, role_data: Dict) -> Optional[Dict]:
+        clean_data = {
+            'name': Validator.clean_name(role_data.get('name', 'Новая роль'), 100),
+            'color': role_data.get('color', 0),
+            'hoist': bool(role_data.get('hoist', False)),
+            'mentionable': bool(role_data.get('mentionable', False)),
+            'permissions': str(role_data.get('permissions', '0'))
+        }
+        
+        data, status = await rm.post(f'/guilds/{guild_id}/roles', clean_data)
+        self.stats['api_calls'] += 1
+        
+        if status == 200:
+            self.stats['roles_created'] += 1
+            rm.rate_limiter.wait('role')
+            return data
+        return None
+    
+    async def update_guild(self, rm: RequestManager, guild_id: str, data: Dict) -> bool:
+        data, status = await rm.patch(f'/guilds/{guild_id}', data)
+        self.stats['api_calls'] += 1
+        return status == 200
+    
+    async def clear_guild(self, rm: RequestManager, guild_id: str):
+        channels = await self.get_guild_channels(rm, guild_id)
+        roles = await self.get_guild_roles(rm, guild_id)
+        
         if channels:
-            процесс(f"Удаляем {len(channels)} каналов...")
-            deleted = 0
+            ui.title("ОЧИСТКА КАНАЛОВ")
             for channel in channels:
-                channel_name = channel.get('name', 'Без названия')
-                if self.delete_channel(channel['id'], channel_name):
-                    deleted += 1
+                name = channel.get('name', 'Без названия')
+                if await self.delete_channel(rm, channel['id']):
+                    ui.success(f"Удален канал: {name}")
                 else:
-                    ошибка(f"Не удалось удалить канал: {channel_name}")
-            успех(f"Удалено каналов: {deleted}/{len(channels)}")
-        time.sleep(self.bulk_delay)
+                    ui.error(f"Не удалось удалить канал: {name}")
+        
         if roles:
-            процесс(f"Удаляем {len(roles)} ролей...")
-            deleted = 0
+            ui.title("ОЧИСТКА РОЛЕЙ")
             sorted_roles = sorted(roles, key=lambda x: x.get('position', 0))
             for role in sorted_roles:
                 if role.get('name') == '@everyone' or role.get('managed', False):
                     continue
-                role_name = role.get('name', 'Без названия')
-                if self.delete_role(target_id, role['id'], role_name):
-                    deleted += 1
+                name = role.get('name', 'Без названия')
+                if await self.delete_role(rm, guild_id, role['id']):
+                    ui.success(f"Удалена роль: {name}")
                 else:
-                    ошибка(f"Не удалось удалить роль: {role_name}")
-            успех(f"Удалено ролей: {deleted}")
-        time.sleep(self.bulk_delay)
-        return True
-
-    def _clone_roles(self, source_roles: List[Dict], target_id: str) -> bool:
-        заголовок("КЛОНИРОВАНИЕ РОЛЕЙ")
-        roles_to_create = []
-        for role in source_roles:
-            if role.get('name') == '@everyone' or role.get('managed', False):
-                continue
-            roles_to_create.append(role)
+                    ui.error(f"Не удалось удалить роль: {name}")
+    
+    async def clone_roles(self, rm: RequestManager, source_id: str, target_id: str) -> bool:
+        source_roles = await self.get_guild_roles(rm, source_id)
+        
+        roles_to_create = [
+            role for role in source_roles 
+            if role.get('name') != '@everyone' and not role.get('managed', False)
+        ]
+        
         if not roles_to_create:
-            информация("Нет ролей для клонирования")
+            ui.info("Нет ролей для клонирования")
             return True
-        успех(f"Будет создано: {len(roles_to_create)} ролей")
+        
+        ui.title(f"КЛОНИРОВАНИЕ РОЛЕЙ ({len(roles_to_create)})")
+        
         sorted_roles = sorted(roles_to_create, key=lambda x: x.get('position', 0), reverse=True)
         role_mapping = {}
-        created = 0
-        процесс("Создаем роли...")
+        
         for i, role in enumerate(sorted_roles, 1):
-            role_name = role.get('name', f'Роль {i}')
-            role_data = {
-                'name': role_name,
-                'color': role.get('color', 0),
-                'hoist': role.get('hoist', False),
-                'mentionable': role.get('mentionable', False),
-                'permissions': role.get('permissions', '0')
-            }
-            success_create, response_data = self.create_role(target_id, role_data)
-            if success_create and isinstance(response_data, dict):
-                new_role_id = response_data.get('id')
-                if new_role_id:
-                    role_mapping[role['id']] = new_role_id
-                    created += 1
-                    успех(f"Создана роль: {role_name} ({i}/{len(sorted_roles)})")
-                else:
-                    ошибка(f"Не удалось получить ID созданной роли: {role_name}")
+            name = role.get('name', f'Роль {i}')
+            ui.progress(f"Создание роли {i}/{len(sorted_roles)}: {name}")
+            
+            new_role = await self.create_role(rm, target_id, role)
+            if new_role and 'id' in new_role:
+                role_mapping[role['id']] = new_role['id']
+                ui.success(f"Создана роль: {name}")
             else:
-                ошибка(f"Ошибка создания роли: {role_name}")
-        if role_mapping:
-            процесс("Обновляем порядок ролей...")
-            position_updates = []
-            for source_role in sorted_roles:
-                source_id = source_role['id']
-                if source_id in role_mapping:
-                    position_updates.append({'id': role_mapping[source_id], 'position': source_role.get('position', 0)})
-            if position_updates:
-                self.update_role_positions(target_id, position_updates)
-        успех(f"Создано ролей: {created}/{len(sorted_roles)}")
-        return created > 0
-
-    def _clone_channels(self, source_channels: List[Dict], target_id: str) -> bool:
-        заголовок("КЛОНИРОВАНИЕ КАНАЛОВ")
+                ui.error(f"Ошибка создания роли: {name}")
+        
+        return len(role_mapping) > 0
+    
+    async def clone_channels(self, rm: RequestManager, source_id: str, target_id: str) -> bool:
+        source_channels = await self.get_guild_channels(rm, source_id)
+        
         if not source_channels:
-            информация("Нет каналов для клонирования")
+            ui.info("Нет каналов для клонирования")
             return True
-        categories = [ch for ch in source_channels if ch.get('type') == 4]
-        channels = [ch for ch in source_channels if ch.get('type') != 4]
-        успех(f"Будет создано: {len(categories)} категорий и {len(channels)} каналов")
+        
+        categories = [ch for ch in source_channels if ch.get('type') == ChannelType.GUILD_CATEGORY]
+        other_channels = [ch for ch in source_channels if ch.get('type') != ChannelType.GUILD_CATEGORY]
+        
+        ui.title(f"КЛОНИРОВАНИЕ КАНАЛОВ ({len(categories)} категорий, {len(other_channels)} каналов)")
+        
         category_map = {}
+        
         if categories:
-            процесс("Создаем категории...")
             sorted_categories = sorted(categories, key=lambda x: x.get('position', 0))
             for i, category in enumerate(sorted_categories, 1):
-                category_name = category.get('name', f'Категория {i}')
-                category_data = {'name': category_name, 'type': 4, 'position': category.get('position', 0)}
-                success_create, response_data = self.create_channel(target_id, category_data)
-                if success_create and isinstance(response_data, dict):
-                    new_id = response_data.get('id')
-                    if new_id:
-                        category_map[category['id']] = new_id
-                        успех(f"Создана категория: {category_name} ({i}/{len(sorted_categories)})")
-                    else:
-                        ошибка(f"Не удалось получить ID категории: {category_name}")
+                name = category.get('name', f'Категория {i}')
+                ui.progress(f"Создание категории {i}/{len(sorted_categories)}: {name}")
+                
+                new_category = await self.create_channel(rm, target_id, category)
+                if new_category and 'id' in new_category:
+                    category_map[category['id']] = new_category['id']
+                    ui.success(f"Создана категория: {name}")
                 else:
-                    ошибка(f"Ошибка создания категории: {category_name}")
-        time.sleep(self.bulk_delay * 0.5)
-        if channels:
-            процесс("Создаем каналы...")
-            sorted_channels = sorted(channels, key=lambda x: x.get('position', 0))
+                    ui.error(f"Ошибка создания категории: {name}")
+        
+        if other_channels:
+            sorted_channels = sorted(other_channels, key=lambda x: x.get('position', 0))
             created = 0
+            
             for i, channel in enumerate(sorted_channels, 1):
-                channel_name = channel.get('name', f'Канал {i}')
+                name = channel.get('name', f'Канал {i}')
                 channel_type = channel.get('type', 0)
-                valid_types = [0, 2, 5, 13, 15]
-                if channel_type not in valid_types:
-                    предупреждение(f"Пропускаем тип {channel_type}: {channel_name}")
+                
+                if not ChannelType.is_valid(channel_type):
+                    ui.warning(f"Пропущен канал (неподдерживаемый тип {channel_type}): {name}")
                     continue
-                channel_data = {'name': channel_name, 'type': channel_type, 'position': channel.get('position', 0)}
-                parent_id = channel.get('parent_id')
-                if parent_id and parent_id in category_map:
-                    channel_data['parent_id'] = category_map[parent_id]
-                success_create, _ = self.create_channel(target_id, channel_data)
-                if success_create:
+                
+                if channel.get('parent_id') in category_map:
+                    channel['parent_id'] = category_map[channel['parent_id']]
+                
+                ui.progress(f"Создание канала {i}/{len(sorted_channels)}: {name}")
+                
+                new_channel = await self.create_channel(rm, target_id, channel)
+                if new_channel:
                     created += 1
-                    успех(f"Создан канал: {channel_name} ({i}/{len(sorted_channels)})")
+                    ui.success(f"Создан канал: {name}")
                 else:
-                    ошибка(f"Ошибка создания канала: {channel_name}")
-            успех(f"Создано каналов: {created}/{len(sorted_channels)}")
+                    ui.error(f"Ошибка создания канала: {name}")
+            
+            ui.success(f"Создано каналов: {created}/{len(sorted_channels)}")
+        
         return True
+    
+    async def clone_guild(self, source_id: str, target_id: str) -> bool:
+        async with RequestManager(self.token) as rm:
+            source_info = await self.get_guild_info(rm, source_id)
+            target_info = await self.get_guild_info(rm, target_id)
+            
+            if not source_info or not target_info:
+                ui.error("Не удалось получить информацию о серверах")
+                return False
+            
+            source_name = source_info.get('name', 'Неизвестный сервер')
+            target_name = target_info.get('name', 'Неизвестный сервер')
+            
+            ui.success(f"Исходный сервер: {source_name}")
+            ui.success(f"Целевой сервер: {target_name}")
+            
+            await self.clear_guild(rm, target_id)
+            
+            if source_info.get('name'):
+                ui.progress("Копирование названия сервера...")
+                if await self.update_guild(rm, target_id, {'name': source_info['name']}):
+                    ui.success("Название скопировано")
+            
+            await self.clone_roles(rm, source_id, target_id)
+            await self.clone_channels(rm, source_id, target_id)
+            
+            return True
 
-async def check_servers_async(token: str):
-    headers = {
-        'Authorization': token,
-        'User-Agent': f'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (DiscordCloner/{VERSION})',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-    }
-    async with aiohttp.ClientSession(headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as session:
-        try:
-            clear_screen()
-            заголовок("ПРОВЕРКА СЕРВЕРОВ")
-            процесс("Проверяем токен...")
-            async with session.get('https://discord.com/api/v10/users/@me') as response:
-                if response.status == 200:
-                    user_data = await response.json()
-                    username = user_data.get('username', 'N/A')
-                    user_id = user_data.get('id', 'N/A')
-                    успех("ТОКЕН РАБОЧИЙ")
-                    информация(f"Пользователь: {username}")
-                    информация(f"ID: {user_id}")
-                    процесс("Получаем список серверов...")
-                    async with session.get('https://discord.com/api/v10/users/@me/guilds') as guilds_response:
-                        if guilds_response.status == 200:
-                            guilds_data = await guilds_response.read()
-                            try:
-                                guilds = json.loads(guilds_data.decode('utf-8'))
-                            except:
-                                ошибка("Ошибка декодирования JSON")
-                                return
-                            успех(f"Найдено серверов: {len(guilds)}")
-                            if guilds:
-                                подзаголовок("СПИСОК СЕРВЕРОВ")
-                                for i, guild in enumerate(guilds, 1):
-                                    guild_id = guild.get('id', 'N/A')
-                                    guild_name = guild.get('name', 'Неизвестный сервер')
-                                    permissions = int(guild.get('permissions', 0))
-                                    is_admin = (permissions & 0x8) != 0
-                                    is_owner = guild.get('owner', False)
-                                    admin_badge = f" [ADMIN]" if is_admin else ""
-                                    owner_badge = f" [ВЛАДЕЛЕЦ]" if is_owner else ""
-                                    print(f"{i:3d}. {guild_name}{admin_badge}{owner_badge}")
-                                    print(f"     ID: {guild_id}")
-                                успех("Все сервера успешно загружены")
-                                информация("Скопируйте ID нужного сервера для клонирования")
-                            else:
-                                предупреждение("Вы не состоите ни в одном сервере")
-                        else:
-                            ошибка(f"Не удалось получить серверы: {guilds_response.status}")
-                else:
-                    ошибка(f"Токен невалидный: {response.status}")
-        except Exception as e:
-            ошибка(f"Ошибка: {type(e).__name__}")
-
-def check_servers(token: str):
-    asyncio.run(check_servers_async(token))
-
-def check_server_menu():
-    clear_screen()
-    печать_баннера()
-    подзаголовок("ВЫБОР СПОСОБА ВВОДА ТОКЕНА")
-    информация("1. Ввести токен вручную")
-    информация("2. Инструкция по получению токена")
-    информация("3. Назад в главное меню")
-    choice = ввод_подсказка("Выберите вариант (1/2/3):").strip()
-    if choice == "3":
-        return
-    token = ""
-    if choice == "1":
-        token = ввод_поле("Введите токен Discord").strip()
-    elif choice == "2":
-        clear_screen()
-        заголовок("ИНСТРУКЦИЯ ПО ПОЛУЧЕНИЮ ТОКЕНА")
-        информация("1. Откройте Discord в браузере")
-        информация("2. Нажмите F12 (Инструменты разработчика)")
-        информация("3. Перейдите на вкладку 'Console'")
-        информация("4. Введите команду: localStorage.token")
-        информация("5. Скопируйте токен (длинная строка в кавычках)")
-        предупреждение("ВАЖНО: Никому не передавайте ваш токен")
-        ввод_подсказка("Нажмите Enter для возврата")
-        check_server_menu()
-        return
-    else:
-        ошибка("Неверный выбор")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        check_server_menu()
-        return
-    if not token:
-        ошибка("Токен не может быть пустым")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        check_server_menu()
-        return
-    if not DiscordValidator.validate_token(token):
-        ошибка("Неверный формат токена")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        check_server_menu()
-        return
-    check_servers(token)
-    ввод_подсказка("Нажмите Enter для возврата в меню")
-
-def main_cloner():
-    if not подтвердить_соглашение():
-        clear_screen()
-        заголовок("ОТМЕНА")
-        ошибка("Вы не подтвердили пользовательское соглашение")
-        ввод_подсказка("Нажмите Enter для выхода")
-        return
-    clear_screen()
-    печать_баннера()
-    подзаголовок("ВВОД ДАННЫХ ДЛЯ КЛОНИРОВАНИЯ")
-    token = ввод_поле("Токен Discord").strip()
-    if not token:
-        ошибка("Токен не может быть пустым")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    if not DiscordValidator.validate_token(token):
-        ошибка("Неверный формат токена")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    source_id = ввод_поле("ID исходного сервера").strip()
-    if not source_id or not DiscordValidator.validate_snowflake(source_id):
-        ошибка("Неверный ID исходного сервера")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    target_id = ввод_поле("ID целевого сервера").strip()
-    if not target_id or not DiscordValidator.validate_snowflake(target_id):
-        ошибка("Неверный ID целевого сервера")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    if source_id == target_id:
-        ошибка("Исходный и целевой сервер не могут быть одинаковыми")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    try:
-        cloner = AdvancedCloner(token)
-    except ValueError as e:
-        ошибка(f"Ошибка инициализации: {e}")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    except Exception as e:
-        ошибка(f"Неожиданная ошибка: {e}")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    процесс("Проверяем доступ к серверам...")
-    servers = cloner.get_servers()
-    if not servers:
-        ошибка("Не удалось получить список серверов")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    source_exists = any(server.get('id') == source_id for server in servers)
-    target_exists = any(server.get('id') == target_id for server in servers)
-    if not source_exists:
-        ошибка("Исходный сервер не найден в вашем списке")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    if not target_exists:
-        ошибка("Целевой сервер не найден в вашем списке")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        return
-    успех("Оба сервера найдены и доступны")
-    clear_screen()
-    заголовок("ВАЖНОЕ ПРЕДУПРЕЖДЕНИЕ")
-    предупреждение("ВСЕ СУЩЕСТВУЮЩИЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ")
-    информация("Будет скопировано:")
-    информация(f"  • Название сервера")
-    информация(f"  • Иконка сервера")
-    информация(f"  • Все роли (кроме @everyone)")
-    информация(f"  • Все категории и каналы")
-    информация("НЕ будет скопировано:")
-    информация(f"  • Сообщения в каналах")
-    информация(f"  • Участники сервера")
-    информация(f"  • Вебхуки и интеграции")
-    ошибка("ОТМЕНИТЬ ЭТО ДЕЙСТВИЕ БУДЕТ НЕВОЗМОЖНО")
-    confirm = ввод_подсказка("Вы уверены, что хотите продолжить? (y/N):").strip().lower()
-    if confirm not in ['y', 'yes', 'да', 'д']:
-        clear_screen()
-        заголовок("ОТМЕНА")
-        ошибка("Операция отменена пользователем")
-        ввод_подсказка("Нажмите Enter для возврата в меню")
-        return
-    успех("Начинаем клонирование")
-    start_time = time.time()
-    result = cloner.clone_server(source_id, target_id)
-    end_time = time.time()
-    elapsed = end_time - start_time
-    minutes = int(elapsed // 60)
-    seconds = int(elapsed % 60)
-    if result:
-        clear_screen()
-        заголовок("КЛОНИРОВАНИЕ ЗАВЕРШЕНО")
-        успех(f"Время выполнения: {minutes} мин {seconds} сек")
-        успех("Перезайдите на сервер, чтобы увидеть все изменения")
-    else:
-        clear_screen()
-        заголовок("КЛОНИРОВАНИЕ НЕ УДАЛОСЬ")
-        ошибка("Произошла ошибка в процессе клонирования")
-    ввод_подсказка("Нажмите Enter для возврата в меню")
+async def check_token_and_servers(token: str):
+    token = token.strip().strip('"\' ')
+    
+    async with RequestManager(token) as rm:
+        user = await rm.get('/users/@me')
+        
+        if not user[0] or user[1] != 200:
+            ui.error("Неверный токен или ошибка авторизации")
+            return False
+        
+        user_data = user[0]
+        ui.success(f"Токен действителен")
+        ui.info(f"Пользователь: {user_data.get('username')}#{user_data.get('discriminator', '0')}")
+        ui.info(f"ID: {user_data.get('id')}")
+        
+        guilds_data = await rm.get('/users/@me/guilds')
+        
+        if guilds_data[1] == 200 and guilds_data[0]:
+            guilds = guilds_data[0]
+            ui.title(f"СЕРВЕРЫ ({len(guilds)})")
+            
+            for i, guild in enumerate(guilds, 1):
+                name = guild.get('name', 'Неизвестный сервер')
+                guild_id = guild.get('id', 'N/A')
+                perms = int(guild.get('permissions', 0))
+                is_admin = (perms & 0x8) != 0
+                
+                admin_mark = "[ADMIN]" if is_admin else ""
+                print(f"{CYAN}│ {WHITE}{i:2d}. {name} {GREEN}{admin_mark}")
+                print(f"{CYAN}│    ID: {guild_id}")
+            
+            return True
+        else:
+            ui.warning("Не удалось получить список серверов")
+            return False
 
 def main_menu():
-    печать_баннера()
-    подзаголовок("ГЛАВНОЕ МЕНЮ")
-    информация(f"1. Клонирование сервера")
-    информация(f"2. Проверка серверов (получить ID)")
-    информация(f"3. Информация о программе")
-    информация(f"4. Выход")
-    choice = ввод_подсказка("Выберите вариант (1/2/3/4):").strip()
-    if choice == "1":
-        main_cloner()
-        main_menu()
-    elif choice == "2":
-        check_server_menu()
-        main_menu()
-    elif choice == "3":
-        clear_screen()
-        заголовок("ИНФОРМАЦИЯ О ПРОГРАММЕ")
-        информация(f"Версия: {VERSION}")
-        информация(f"Автор: {AUTHOR}")
-        информация(f"Telegram: {TELEGRAM}")
-        информация(f"Канал: {SUPPORT_CHANNEL}")
-        информация("Возможности:")
-        информация(f"  • Полное клонирование структуры сервера")
-        информация(f"  • Копирование ролей с правами")
-        информация(f"  • Копирование категорий и каналов")
-        информация(f"  • Копирование иконки сервера")
-        информация(f"  • Улучшенная обработка ошибок")
-        информация("При обнаружении ошибок пишите автору:")
-        информация(f"Telegram: {TELEGRAM} | {SUPPORT_CHANNEL}")
-        ввод_подсказка("Нажмите Enter для возврата в меню")
-        main_menu()
-    elif choice == "4":
-        clear_screen()
-        заголовок("ВЫХОД")
-        успех("До свидания! Спасибо за использование программы")
-        time.sleep(1)
+    while True:
+        ui.banner()
+        ui.title("ГЛАВНОЕ МЕНЮ")
+        ui.info("1. Клонирование сервера")
+        ui.info("2. Проверка токена и серверов")
+        ui.info("3. Информация о программе")
+        ui.info("4. Выход")
+        
+        choice = ui.input_prompt("Выберите вариант (1-4):").strip()
+        
+        if choice == "1":
+            run_cloner()
+        elif choice == "2":
+            run_token_check()
+        elif choice == "3":
+            show_info()
+        elif choice == "4":
+            ui.header("ВЫХОД")
+            ui.success("До свидания!")
+            break
+        else:
+            ui.error("Неверный выбор")
+
+def show_info():
+    ui.clear()
+    ui.header("ИНФОРМАЦИЯ О ПРОГРАММЕ")
+    ui.info(f"Версия: {VERSION}")
+    ui.info(f"Автор: {AUTHOR}")
+    ui.info(f"Telegram: {TELEGRAM}")
+    ui.info(f"Канал: {SUPPORT_CHANNEL}")
+    ui.info("")
+    ui.info("Возможности:")
+    ui.info("  • Полное клонирование структуры сервера")
+    ui.info("  • Копирование ролей с правами")
+    ui.info("  • Копирование категорий и каналов")
+    ui.info("  • Копирование названия сервера")
+    ui.info("  • Улучшенная обработка ошибок")
+    ui.info("  • Оптимизированные задержки запросов")
+    ui.input_prompt("Нажмите Enter для возврата")
+
+def run_token_check():
+    ui.clear()
+    ui.banner()
+    ui.title("ПРОВЕРКА ТОКЕНА")
+    
+    token = ui.input_field("Введите токен Discord").strip()
+    
+    if not token:
+        ui.error("Токен не может быть пустым")
+        ui.input_prompt("Нажмите Enter для возврата")
         return
-    else:
-        ошибка("Неверный выбор")
-        ввод_подсказка("Нажмите Enter для продолжения")
-        main_menu()
+    
+    if not Validator.validate_token(token):
+        ui.error("Неверный формат токена")
+        ui.info("Уберите кавычки и лишние пробелы")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    asyncio.run(check_token_and_servers(token))
+    ui.input_prompt("Нажмите Enter для возврата")
+
+def run_cloner():
+    ui.clear()
+    ui.agreement()
+    
+    confirm = ui.input_prompt("Введите 'ПОДТВЕРДИТЬ' для продолжения:").strip().upper()
+    if confirm != "ПОДТВЕРДИТЬ":
+        ui.header("ОТМЕНА")
+        ui.error("Операция отменена")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    ui.clear()
+    ui.banner()
+    ui.title("ВВОД ДАННЫХ")
+    
+    token = ui.input_field("Токен Discord").strip()
+    if not token:
+        ui.error("Токен не может быть пустым")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    token = token.strip().strip('"\' ')
+    if not Validator.validate_token(token):
+        ui.error("Неверный формат токена")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    source_id = ui.input_field("ID исходного сервера").strip()
+    if not Validator.validate_snowflake(source_id):
+        ui.error("Неверный ID исходного сервера")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    target_id = ui.input_field("ID целевого сервера").strip()
+    if not Validator.validate_snowflake(target_id):
+        ui.error("Неверный ID целевого сервера")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    if source_id == target_id:
+        ui.error("Серверы не могут быть одинаковыми")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    ui.title("ПОДТВЕРЖДЕНИЕ")
+    ui.warning("ВНИМАНИЕ: Все каналы и роли на целевом сервере будут удалены!")
+    ui.info("Это действие нельзя отменить!")
+    
+    final_confirm = ui.input_prompt("Продолжить? (y/N):").strip().lower()
+    if final_confirm not in ['y', 'yes', 'да', 'д']:
+        ui.header("ОТМЕНА")
+        ui.error("Операция отменена")
+        ui.input_prompt("Нажмите Enter для возврата")
+        return
+    
+    start_time = time.time()
+    
+    async def run():
+        cloner = DiscordCloner(token)
+        result = await cloner.clone_guild(source_id, target_id)
+        return result, cloner.stats
+    
+    try:
+        result, stats = asyncio.run(run())
+        elapsed = time.time() - start_time
+        
+        ui.clear()
+        if result:
+            ui.header("ОПЕРАЦИЯ ЗАВЕРШЕНА")
+            ui.success("Клонирование выполнено успешно")
+            ui.info(f"Время выполнения: {int(elapsed // 60)} мин {int(elapsed % 60)} сек")
+            ui.info(f"Создано каналов: {stats['channels_created']}")
+            ui.info(f"Создано ролей: {stats['roles_created']}")
+            ui.info(f"API запросов: {stats['api_calls']}")
+        else:
+            ui.header("ОШИБКА")
+            ui.error("Не удалось выполнить клонирование")
+        
+    except Exception as e:
+        ui.error(f"Критическая ошибка: {type(e).__name__}")
+        with open('error_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"\n{'='*50}\n")
+            f.write(f"Время: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Ошибка: {type(e).__name__}: {e}\n")
+            f.write(f"Трассировка:\n{traceback.format_exc()}\n")
+    
+    ui.input_prompt("Нажмите Enter для возврата")
 
 def main():
     try:
         main_menu()
     except KeyboardInterrupt:
-        print(f"\nПрограмма прервана пользователем")
-        input("Нажмите Enter для выхода")
+        print(f"\n{YELLOW}Программа прервана{RESET}")
     except Exception as e:
-        print(f"\nКритическая ошибка: {type(e).__name__}: {e}")
-        input("Нажмите Enter для выхода")
+        print(f"\n{RED}Критическая ошибка: {type(e).__name__}: {e}{RESET}")
+        with open('error_log.txt', 'a', encoding='utf-8') as f:
+            f.write(f"\n{'='*50}\n")
+            f.write(f"Время: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Ошибка: {type(e).__name__}: {e}\n")
+            f.write(f"Трассировка:\n{traceback.format_exc()}\n")
 
 if __name__ == "__main__":
     main()
