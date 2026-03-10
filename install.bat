@@ -1,85 +1,49 @@
 @echo off
 chcp 65001 >nul
-title Discord Server Cloner V5 - Установка
-color 0B
+title Discord Server Cloner V6.2.0 - Installation
 
-echo ═════════════════════════════════════════════════════════════
-echo                  Установка Discord Server Cloner
-echo                     Версия 6.0.0 by xolirx
-echo ═════════════════════════════════════════════════════════════
+echo Installing Discord Server Cloner
 echo.
 
-echo [*] Проверка наличия Python...
+echo Checking Python...
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [-] Python не найден!
-    echo [*] Скачайте и установите Python 3.8+ с официального сайта:
-    echo [*] https://python.org/downloads/
-    echo [*] Не забудьте поставить галочку "Add Python to PATH"
+    echo Python not found!
+    echo Download Python 3.8+ from python.org
     pause
     exit /b 1
 )
 
-echo [+] Python найден
 python --version
-
 echo.
-echo [*] Создание виртуального окружения...
+
+echo Creating virtual environment...
 python -m venv venv
 if errorlevel 1 (
-    echo [-] Ошибка создания виртуального окружения
-    echo [*] Попробуйте выполнить: python -m pip install virtualenv
-    echo [*] Затем снова запустите install.bat
+    echo Failed to create virtual environment
     pause
     exit /b 1
 )
-
-echo [+] Виртуальное окружение создано
-
+echo OK
 echo.
-echo [*] Активация виртуального окружения...
-if not exist "venv\Scripts\activate.bat" (
-    echo [-] Файл активации не найден
-    echo [*] Попробуйте удалить папку venv и запустить заново
-    pause
-    exit /b 1
-)
 
+echo Updating pip...
+call venv\Scripts\python.exe -m pip install --upgrade pip >nul 2>&1
+echo OK
 echo.
-echo [*] Обновление pip внутри виртуального окружения...
-call venv\Scripts\python.exe -m pip install --upgrade pip
+
+echo Installing dependencies...
+call venv\Scripts\python.exe -m pip install colorama requests aiohttp
 if errorlevel 1 (
-    echo [-] Ошибка обновления pip
-    echo [*] Пропускаем обновление...
-)
-
-echo.
-echo [*] Установка зависимостей...
-call venv\Scripts\python.exe -m pip install colorama>=0.4.6 requests>=2.31.0 aiohttp>=3.9.0
-
-if errorlevel 1 (
-    echo [-] Ошибка установки зависимостей
-    echo [*] Попробуйте выполнить вручную:
-    echo [*] venv\Scripts\python.exe -m pip install colorama requests aiohttp
+    echo Failed to install dependencies
     pause
     exit /b 1
 )
+echo OK
+echo.
 
-echo [+] Зависимости установлены
+echo Installation complete!
+echo Use start.bat to launch the program
+echo.
 
-echo.
-echo [*] Проверка установки...
-call venv\Scripts\python.exe -c "import colorama, requests, aiohttp; print('[+] Все модули успешно импортированы')"
-
-echo.
-echo ═════════════════════════════════════════════════════════════
-echo                    УСТАНОВКА ЗАВЕРШЕНА
-echo ═════════════════════════════════════════════════════════════
-echo.
-echo [*] Для запуска программы используйте start.bat
-echo [*] Или запустите вручную: venv\Scripts\python.exe channel_copier.py
-echo.
-echo [*] Поддержка: Telegram @qtiq0 | Discord zlafik
-echo [*] При обнаружении ошибок пишите автору
-echo.
 pause
