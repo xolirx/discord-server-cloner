@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🎯 Discord Server Cloner v6.0.0</h1>
+  <h1>🎯 Discord Server Cloner</h1>
   <p>
     <strong>Профессиональный инструмент для клонирования структуры Discord серверов</strong>
   </p>
@@ -163,12 +163,12 @@ python channel_copier.py
 
 1. Откройте **Discord в браузере** (не в приложении)
 2. Нажмите **F12** (Инструменты разработчика)
-3. Перейдите на вкладку **Console** (Консоль)
+3. Перейдите на вкладку **Network** (Консоль)
 4. Вставьте и выполните:
    ```javascript
-   localStorage.token
+   /api
    ```
-5. Скопируйте полученное значение **без кавычек**
+5. Скопируйте " authorization " полученное значение **без кавычек**
 
 > ⚠️ **Никому не передавайте ваш токен!** Он даёт полный доступ к аккаунту.
 
@@ -277,9 +277,9 @@ discord-server-cloner/
 
 | Платформа | Контакт |
 |-----------|---------|
-| **Telegram** | [@qtiq0](https://t.me/qtiq0) |
+| **Telegram** | [@xolirx](https://t.me/xolirx) |
 | **Discord** | `zlafik` |
-| **Канал** | [@biozlafik](https://t.me/biozlafik) |
+| **Канал** | [@bioxolirx](https://t.me/xolirxx) |
 
 </div>
 
@@ -331,7 +331,7 @@ of this software and associated documentation files...
 
 <div align="center">
   
-**Создано с ❤️ от [qtiq0](https://t.me/qtiq0)**  
+**Создано с ❤️ от [xolirx](https://t.me/xolirx)**  
 **Используйте ответственно!** 🛡️
 
 <br>
@@ -340,5 +340,6 @@ of this software and associated documentation files...
 
 </div>
 ```
+
 
 
