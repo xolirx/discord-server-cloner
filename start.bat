@@ -1,5 +1,6 @@
 @echo off
 chcp 65001 >nul
+cd /d "%~dp0"
 title Discord Server Cloner V6.2.0
 
 if not exist "venv" (
