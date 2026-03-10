@@ -1,6 +1,3 @@
-Конечно! Вот полностью переработанный README.md с современным дизайном, эмодзи и улучшенной структурой:
-
-```markdown
 <div align="center">
   <h1>🎯 Discord Server Cloner v6.0.0</h1>
   <p>
@@ -343,4 +340,5 @@ of this software and associated documentation files...
 
 </div>
 ```
+
 
