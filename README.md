@@ -5,7 +5,7 @@
 
 **Профессиональный инструмент для клонирования структуры Discord серверов** с красивым веб-интерфейсом. Больше никаких Python-скриптов и установки — всё работает прямо в браузере!
 
-👉 **Попробовать прямо сейчас:** [**xolirx.github.io/DiscordCloner**](https://xolirx.github.io/DiscordCloner/)
+👉 **Попробовать прямо сейчас:** [**Discord Cloner**](https://discord-cloner-byxolirx.vercel.app/)
 
 ---
 
@@ -39,7 +39,7 @@
 
 ## 🚀 Быстрый старт
 
-1.  Перейдите на сайт: [**xolirx.github.io/DiscordCloner**](https://xolirx.github.io/DiscordCloner)
+1.  Перейдите на сайт: [**xolirx.github.io/DiscordCloner**](https://discord-cloner-byxolirx.vercel.app/)
 2.  Введите ваш **Discord токен** (инструкция есть прямо на сайте).
 3.  Укажите **ID исходного** и **целевого** сервера.
 4.  Подтвердите согласие с правилами и нажмите **«Начать»**.
@@ -63,7 +63,7 @@
 ## 📞 Поддержка и обратная связь
 
 *   **Telemax (основной контакт):** [@xolirx](https://t.me/xolirx) (кнопка с готовым сообщением есть на сайте)
-*   **Telegram-канал:** [@bioxolirx](https://t.me/bioxolirx)
+*   **Telegram-канал:** [@xolirxx](https://t.me/xolirxx)
 *   **Discord:** `xolirx`
 
 По всем вопросам, багам и предложениям пишите в Telegram. Баги можно также создавать в [Issues](https://github.com/xolirx/discord-server-cloner/issues) на GitHub.
