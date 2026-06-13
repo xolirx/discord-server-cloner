@@ -1,89 +1,110 @@
-# 🚀 Discord Server Cloner — Веб-версия
+<div align="center">
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+# ⚡ Discord Server Cloner
 
-**Профессиональный инструмент для клонирования структуры Discord серверов** с красивым веб-интерфейсом. Больше никаких Python-скриптов и установки — всё работает прямо в браузере!
+### Профессиональный инструмент для клонирования Discord серверов
 
-👉 **Попробовать прямо сейчас:** [xolirx.github.io/DiscordCloner](https://xolirx.github.io/DiscordCloner)
+<br>
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+<img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=24&duration=3500&pause=500&color=FFFFFF&center=true&vCenter=true&width=700&lines=Fast+%7C+Secure+%7C+Modern;Roles+%7C+Channels+%7C+Permissions;Full+Structure+%7C+No+Messages;Online+%7C+Free+%7C+No+Install">
 
-## ✨ Возможности веб-версии
+<br>
 
-- **🌐 Полностью онлайн** — не требует установки, работает в любом современном браузере.
-- **🎨 Современный интерфейс** — стеклянные карточки (glassmorphism), плавные анимации, эффект снега.
-- **🌙☀️ Две темы** — переключайтесь между тёмной и светлой темой одним нажатием.
-- **📊 Прогресс в реальном времени** — следите за каждым этапом клонирования.
-- **⏸️ Кнопка отмены** — остановите процесс, если что-то пошло не так.
-- **🔔 Уведомления** — звуковой сигнал и push-уведомление о завершении.
-- **📥 Экспорт логов** — сохраните историю операции в текстовый файл.
+<img src="https://img.shields.io/badge/Version-1.0.0-black?style=for-the-badge&logo=github">
+<img src="https://img.shields.io/badge/License-MIT-black?style=for-the-badge&logo=open-source-initiative">
+<img src="https://img.shields.io/badge/Status-Active-black?style=for-the-badge&logo=github-actions">
+<img src="https://img.shields.io/badge/Platform-Web-black?style=for-the-badge&logo=javascript">
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+<br>
+<br>
 
-## 🎯 Что и как копируется
+## 🚀 НАЧАТЬ ИСПОЛЬЗОВАТЬ
 
-### 📋 **Будет скопировано:**
+<a href="https://xolirx.github.io/DiscordCloner">
+  <img src="https://img.shields.io/badge/🔗-ПЕРЕЙТИ_НА_САЙТ_И_КЛОНИРОВАТЬ-000000?style=for-the-badge&logo=discord&logoColor=white&labelColor=000&color=000" alt="Клонировать">
+</a>
+
+<a href="https://xolirx.github.io/DiscordCloner">
+  <img src="https://img.shields.io/badge/🌐-xolirx.github.io%2FDiscordCloner-000000?style=for-the-badge&logo=google-chrome&logoColor=white&labelColor=000&color=000" alt="Ссылка на сайт">
+</a>
+
+<br>
+<br>
+
+---
+
+</div>
+
+## ⚡ Что это?
+
+**Discord Server Cloner** — профессиональный веб-инструмент для полного клонирования структуры Discord серверов. Работает прямо в браузере — никаких установок и Python-скриптов.
+
+- 🎯 **Полная структура** — роли, категории, каналы, права доступа
+- 🖼️ **Иконка сервера** — автоматическое копирование
+- 📊 **Прогресс в реальном времени** — следите за каждым этапом
+- ⏸️ **Отмена процесса** — остановите в любой момент
+- 🔔 **Уведомления** — звук и push-оповещение о завершении
+
+---
+
+## 🎯 Что копируется?
+
+### ✅ **Будет скопировано:**
 
 - Название сервера
 - Иконка сервера
-- **Все роли** с их правами и цветом (порядок сохраняется: от высшей роли к низшей)
-- **Все категории и каналы** с их структурой и настройками (включая права доступа для ролей)
+- Все роли с правами и цветами (порядок сохраняется)
+- Все категории и каналы с настройками
+- Права доступа для ролей
 
 ### ❌ **НЕ будет скопировано:**
 
 - Сообщения в каналах
 - Участники сервера
-- Вебхуки
-- Интеграции
+- Вебхуки и интеграции
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+---
 
-## 🚀 Быстрый старт
+## 🚀 Как использовать (30 секунд)
 
-1. Перейдите на сайт: [xolirx.github.io/DiscordCloner](https://xolirx.github.io/DiscordCloner)
-2. Введите ваш **Discord токен** (инструкция есть прямо на сайте).
-3. Укажите **ID исходного** и **целевого** сервера.
-4. Подтвердите согласие с правилами и нажмите **«Начать»**.
-5. Наблюдайте за процессом в логах. Можно закрыть вкладку — клонирование продолжится.
+### Шаг 1. Перейди на сайт
+👉 **https://xolirx.github.io/DiscordCloner**
 
-> ⚠️ **ВНИМАНИЕ: ВСЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ!** Используйте только на своих серверах и с правами администратора.
+### Шаг 2. Введи Discord токен
+(инструкция по получению есть на сайте)
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+### Шаг 3. Укажи ID исходного и целевого сервера
+
+### Шаг 4. Нажми «Старт» и наблюдай за процессом ✅
+
+> ⚠️ **ВНИМАНИЕ: ВСЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ!** Используйте только на своих серверах с правами администратора.
+
+---
 
 ## 🛠️ Технические детали
 
-- **Язык:** JavaScript (ES6+)
-- **API:** Discord API v10
-- **Ключевые технологии:** Service Worker (для фона), LocalStorage (для сохранения состояния), CSS3 (анимации и темы).
-- **Структура репозитория:**
-  - `index.html` — основной файл приложения.
-  - `sw.js` — сервис-воркер для фоновой работы.
+| Технология | Описание |
+|------------|----------|
+| **Язык** | JavaScript (ES6+) |
+| **API** | Discord API v10 |
+| **Фоновая работа** | Service Worker |
+| **Сохранение состояния** | LocalStorage |
+| **Интерфейс** | Glassmorphism, 2 темы |
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+---
 
 ## 📞 Поддержка и обратная связь
 
-- **Telegram (основной контакт):** [@xolirx](https://t.me/xolirx) (кнопка с готовым сообщением есть на сайте)
-- **Telegram-канал:** [@vpn_by_xolirx](https://t.me/vpn_by_xolirx)
-- **Discord:** `xolirx`
+| Канал | Ссылка |
+|-------|--------|
+| **Telegram (автор)** | [@xolirx](https://t.me/xolirx) |
+| **Telegram-канал** | [@vpn_by_xolirx](https://t.me/vpn_by_xolirx) |
+| **Discord** | `xolirx` |
+| **GitHub Issues** | [Создать баг](https://github.com/xolirx/discord-server-cloner/issues) |
 
-По всем вопросам, багам и предложениям пишите в Telegram. Баги можно также создавать в Issues на GitHub.
+По всем вопросам, багам и предложениям пишите в Telegram.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
-</p>
+---
 
 ## 📄 Лицензия
 
@@ -91,6 +112,15 @@
 
 ---
 
-<p align="center">
-  ⭐ **Если проект вам помог, поставьте звезду!** Это очень мотивирует.
-</p>
+<div align="center">
+
+<a href="https://xolirx.github.io/DiscordCloner">
+  <img src="https://img.shields.io/badge/⭐-КЛОНИРОВАТЬ_СЕРВЕР-000000?style=for-the-badge&labelColor=000&color=000" alt="Клонировать">
+</a>
+
+<br>
+<br>
+
+**Просто нажми на кнопку 👆**
+
+</div>
