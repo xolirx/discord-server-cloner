@@ -1,10 +1,16 @@
 # 🚀 Discord Server Cloner — Веб-версия
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
+
 **Профессиональный инструмент для клонирования структуры Discord серверов** с красивым веб-интерфейсом. Больше никаких Python-скриптов и установки — всё работает прямо в браузере!
 
 👉 **Попробовать прямо сейчас:** [xolirx.github.io/DiscordCloner](https://xolirx.github.io/DiscordCloner)
 
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
 
 ## ✨ Возможности веб-версии
 
@@ -16,7 +22,9 @@
 - **🔔 Уведомления** — звуковой сигнал и push-уведомление о завершении.
 - **📥 Экспорт логов** — сохраните историю операции в текстовый файл.
 
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
 
 ## 🎯 Что и как копируется
 
@@ -34,7 +42,9 @@
 - Вебхуки
 - Интеграции
 
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
 
 ## 🚀 Быстрый старт
 
@@ -46,7 +56,9 @@
 
 > ⚠️ **ВНИМАНИЕ: ВСЕ КАНАЛЫ И РОЛИ НА ЦЕЛЕВОМ СЕРВЕРЕ БУДУТ УДАЛЕНЫ!** Используйте только на своих серверах и с правами администратора.
 
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
 
 ## 🛠️ Технические детали
 
@@ -57,7 +69,9 @@
   - `index.html` — основной файл приложения.
   - `sw.js` — сервис-воркер для фоновой работы.
 
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
 
 ## 📞 Поддержка и обратная связь
 
@@ -67,7 +81,9 @@
 
 По всем вопросам, багам и предложениям пишите в Telegram. Баги можно также создавать в Issues на GitHub.
 
----
+<p align="center">
+  <img src="https://raw.githubusercontent.com/xolirx/discord-server-cloner/main/assets/divider.svg" alt="divider" width="600">
+</p>
 
 ## 📄 Лицензия
 
@@ -75,4 +91,6 @@
 
 ---
 
-⭐ **Если проект вам помог, поставьте звезду!** Это очень мотивирует.
+<p align="center">
+  ⭐ **Если проект вам помог, поставьте звезду!** Это очень мотивирует.
+</p>
