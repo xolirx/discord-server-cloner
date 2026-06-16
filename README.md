@@ -20,11 +20,11 @@
 
 ## 🚀 НАЧАТЬ ИСПОЛЬЗОВАТЬ
 
-<a href="https://discord-cloner-byxolirx.vercel.app">
+<a href="https://xolirx-discord-cloner.vercel.app/">
   <img src="https://img.shields.io/badge/🔗-ПЕРЕЙТИ_НА_САЙТ_И_КЛОНИРОВАТЬ-000000?style=for-the-badge&logo=discord&logoColor=white&labelColor=000&color=000" alt="Клонировать">
 </a>
 
-<a href="https://discord-cloner-byxolirx.vercel.app">
+<a href="https://xolirx-discord-cloner.vercel.app/">
   <img src="https://img.shields.io/badge/🌐-discord--cloner--byxolirx.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white&labelColor=000&color=000" alt="Ссылка на сайт">
 </a>
 
@@ -68,7 +68,7 @@
 ## 🚀 Как использовать (30 секунд)
 
 ### Шаг 1. Перейди на сайт
-👉 **https://discord-cloner-byxolirx.vercel.app**
+👉 **https://xolirx-discord-cloner.vercel.app/**
 
 ### Шаг 2. Введи Discord токен
 (инструкция по получению есть на сайте)
@@ -114,7 +114,7 @@
 
 <div align="center">
 
-<a href="https://discord-cloner-byxolirx.vercel.app">
+<a href="https://xolirx-discord-cloner.vercel.app/">
   <img src="https://img.shields.io/badge/⭐-КЛОНИРОВАТЬ_СЕРВЕР-000000?style=for-the-badge&labelColor=000&color=000" alt="Клонировать">
 </a>
 
